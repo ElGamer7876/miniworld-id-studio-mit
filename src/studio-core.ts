@@ -7,14 +7,14 @@ export type StudioAction = { id: string; type: ActionType; label: string; value:
 export type StudioCondition = { id: string; field: string; operator: '==' | '~=' | '>' | '>=' | '<' | '<='; value: string };
 export type StudioVariable = { id: string; name: string; value: string; valueType: 'string' | 'number' | 'boolean'; scope: 'local' | 'global' };
 export type StudioTrigger = { id: string; name: string; event: string; functionName: string; enabled: boolean; x: number; y: number; conditions: StudioCondition[]; variables: StudioVariable[]; actions: StudioAction[] };
-export type StudioSettings = { keepTabOnAdd: boolean; showCodeOnMap: boolean; freeMapMovement: boolean; easyMode: boolean; grid: boolean; zoom: number; mapX: number; mapY: number };
+export type StudioSettings = { keepTabOnAdd: boolean; showCodeOnMap: boolean; freeMapMovement: boolean; moveTriggers: boolean; easyMode: boolean; grid: boolean; zoom: number; mapX: number; mapY: number };
 export type StudioProject = { format: 'miniworld-id-studio'; version: 2; id: number; title: string; description: string; preamble: string; createdAt: string; updatedAt: string; activeView: 'map' | 'editor' | 'lua' | 'config'; settings: StudioSettings; triggers: StudioTrigger[] };
 export type SecurityResult = { status: 'safe' | 'warning' | 'blocked'; blocked: string[]; warnings: string[]; calls: string[]; executed: false };
 
 const uid = (prefix: string): string => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 const identifier = (value: string): string => value.replace(/[^A-Za-z0-9_]/g, '_').replace(/^[^A-Za-z_]+/, '') || 'activar';
 const luaString = (value: string): string => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n')}"`;
-const settings = (): StudioSettings => ({ keepTabOnAdd: false, showCodeOnMap: true, freeMapMovement: true, easyMode: true, grid: true, zoom: 1, mapX: 0, mapY: 0 });
+const settings = (): StudioSettings => ({ keepTabOnAdd: false, showCodeOnMap: true, freeMapMovement: true, moveTriggers: true, easyMode: true, grid: true, zoom: 1, mapX: 0, mapY: 0 });
 
 export function createProject(projectId = 1): StudioProject {
   const now = new Date().toISOString();

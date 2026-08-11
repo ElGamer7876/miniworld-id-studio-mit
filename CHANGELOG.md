@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## 0.2.2 — 2026-08-11
+
+- Corrige el regreso del activador a su posición anterior al soltarlo.
+- Separa las opciones para mover el mapa y mover los activadores.
+- Calcula el movimiento desde el punto inicial y descarta `0,0` inválido.
+- Conserva la última posición válida si WebView2 emite `pointercancel`.
+
 ## 0.2.1 — 2026-08-11
 
 - Corrige el salto accidental de activadores hacia la coordenada `0,0`.
