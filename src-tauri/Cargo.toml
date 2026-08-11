@@ -1,0 +1,19 @@
+[package]
+name = "miniworld-id-studio-mit"
+version = "0.2.1"
+description = "Editor MIT completamente local de activadores y Lua para Mini World"
+authors = ["Mini World ID"]
+edition = "2021"
+
+[lib]
+name = "miniworld_id_studio_mit_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-store = "2"

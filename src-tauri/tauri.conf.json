@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Mini World ID Studio MIT",
+  "version": "0.2.1",
+  "identifier": "id.miniworld.studio.mit",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{"title": "Mini World ID Studio — MIT Local", "width": 1440, "height": 900, "minWidth": 980, "minHeight": 640, "maximized": true, "resizable": true, "fullscreen": false}],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self'; script-src 'self'",
+      "devCsp": "default-src 'self' http://localhost:1420; connect-src 'self' ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' http://localhost:1420"
+    }
+  },
+  "bundle": {"active": true, "targets": ["msi", "nsis"], "icon": ["icons/icon.ico"], "windows": {"webviewInstallMode": {"type": "downloadBootstrapper", "silent": true}}}
+}
