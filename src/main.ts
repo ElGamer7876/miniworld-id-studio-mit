@@ -68,13 +68,13 @@ function eventOptions(selected: string): string {
 
 function renderMap(host: HTMLElement): void {
   const zoom = Math.min(1.8, Math.max(.45, project.settings.zoom));
-  host.innerHTML = `<div class="workspace-tools"><button data-zoom-out>−</button><strong>${Math.round(zoom * 100)}%</strong><button data-zoom-in>+</button><button data-fit>Encajar</button><label class="check"><input data-free-move type="checkbox" ${project.settings.freeMapMovement ? 'checked' : ''}> Movimiento libre</label><span>Arrastra el fondo para desplazarte y usa la rueda para acercar.</span></div><div class="map-viewport ${project.settings.grid ? '' : 'no-grid'}" data-map><div class="map-world" data-map-world style="transform:translate(${project.settings.mapX}px,${project.settings.mapY}px) scale(${zoom})">${project.triggers.map((trigger) => { const actions = trigger.actions.slice(0, 6).map((action) => `<span class="flow-block ${action.type}">${html(action.label)}</span>`).join('') || '<span class="flow-block empty">Sin acciones</span>'; const preview = project.settings.showCodeOnMap ? `<pre>${html(generateLua({ ...project, preamble: '', triggers: [trigger] }).split('\n').slice(2, 11).join('\n'))}</pre>` : ''; return `<article class="trigger-card ${trigger.id === activeTriggerId ? 'active' : ''} ${trigger.enabled ? '' : 'disabled'}" data-map-trigger="${trigger.id}" style="left:${trigger.x}px;top:${trigger.y}px"><button class="event-block">${html(trigger.name)}<small>${html(eventById(trigger.event)?.name || trigger.event)}</small></button><div class="trigger-flow">${actions}${preview}</div></article>`; }).join('')}</div></div>`;
+  host.innerHTML = `<div class="workspace-tools"><button data-zoom-out>−</button><strong>${Math.round(zoom * 100)}%</strong><button data-zoom-in>+</button><button data-fit>Encajar</button><label class="check"><input data-free-move type="checkbox" ${project.settings.freeMapMovement ? 'checked' : ''}> Mover mapa</label><label class="check"><input data-move-triggers type="checkbox" ${project.settings.moveTriggers ? 'checked' : ''}> Mover activadores</label><span>Arrastra el fondo o la cabecera azul del activador.</span></div><div class="map-viewport ${project.settings.grid ? '' : 'no-grid'}" data-map><div class="map-world" data-map-world style="transform:translate(${project.settings.mapX}px,${project.settings.mapY}px) scale(${zoom})">${project.triggers.map((trigger) => { const actions = trigger.actions.slice(0, 6).map((action) => `<span class="flow-block ${action.type}">${html(action.label)}</span>`).join('') || '<span class="flow-block empty">Sin acciones</span>'; const preview = project.settings.showCodeOnMap ? `<pre>${html(generateLua({ ...project, preamble: '', triggers: [trigger] }).split('\n').slice(2, 11).join('\n'))}</pre>` : ''; return `<article class="trigger-card ${trigger.id === activeTriggerId ? 'active' : ''} ${trigger.enabled ? '' : 'disabled'}" data-map-trigger="${trigger.id}" style="left:${trigger.x}px;top:${trigger.y}px"><button class="event-block">${html(trigger.name)}<small>${html(eventById(trigger.event)?.name || trigger.event)}</small></button><div class="trigger-flow">${actions}${preview}</div></article>`; }).join('')}</div></div>`;
   const map = host.querySelector<HTMLElement>('[data-map]'), world = host.querySelector<HTMLElement>('[data-map-world]'); if (!map || !world) return;
   const applyTransform = (): void => { world.style.transform = `translate(${project.settings.mapX}px,${project.settings.mapY}px) scale(${project.settings.zoom})`; };
   map.onwheel = (event) => { event.preventDefault(); const before = snap(); project.settings.zoom = Math.min(1.8, Math.max(.45, project.settings.zoom + (event.deltaY < 0 ? .1 : -.1))); applyTransform(); commit(before, 'Zoom actualizado'); };
   let mapPointerId: number | null = null, mapBefore = '', mapLastX = 0, mapLastY = 0, mapOriginX = 0, mapOriginY = 0, mapDragBounds: DOMRect | null = null;
   map.onpointerdown = (event) => {
-    if ((event.target as Element).closest('[data-map-trigger]') || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (!project.settings.freeMapMovement || (event.target as Element).closest('[data-map-trigger]') || (event.pointerType === 'mouse' && event.button !== 0)) return;
     event.preventDefault();
     mapDragging = true; mapPointerId = event.pointerId; mapBefore = snap(); mapLastX = event.clientX; mapLastY = event.clientY; mapOriginX = project.settings.mapX; mapOriginY = project.settings.mapY; mapDragBounds = map.getBoundingClientRect();
     map.setPointerCapture(event.pointerId);
@@ -101,30 +101,28 @@ function renderMap(host: HTMLElement): void {
     const trigger = project.triggers.find((item) => item.id === card.dataset.mapTrigger);
     const handle = card.querySelector<HTMLButtonElement>('.event-block');
     if (!trigger || !handle) return;
-    let pointerId: number | null = null, before = '', lastX = 0, lastY = 0, downX = 0, downY = 0, originX = 0, originY = 0, moved = false, suppressClick = false, dragBounds: DOMRect | null = null;
+    let pointerId: number | null = null, before = '', downX = 0, downY = 0, originX = 0, originY = 0, moved = false, suppressClick = false, dragBounds: DOMRect | null = null;
     handle.onclick = (event) => {
       if (suppressClick) { event.preventDefault(); suppressClick = false; return; }
       activeTriggerId = trigger.id; render();
     };
-    if (!project.settings.freeMapMovement) return;
+    if (!project.settings.moveTriggers) return;
     handle.onpointerdown = (event) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
       event.preventDefault(); event.stopPropagation();
-      pointerId = event.pointerId; before = snap(); lastX = downX = event.clientX; lastY = downY = event.clientY; originX = trigger.x; originY = trigger.y; moved = false; dragBounds = map.getBoundingClientRect();
+      pointerId = event.pointerId; before = snap(); downX = event.clientX; downY = event.clientY; originX = trigger.x; originY = trigger.y; moved = false; dragBounds = map.getBoundingClientRect();
       handle.setPointerCapture(event.pointerId);
     };
     handle.onpointermove = (event) => {
       if (event.pointerId !== pointerId || !handle.hasPointerCapture(event.pointerId) || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
       if (event.pointerType === 'mouse' && (event.buttons & 1) === 0) return;
       if (dragBounds && (event.clientX < dragBounds.left || event.clientX > dragBounds.right || event.clientY < dragBounds.top || event.clientY > dragBounds.bottom)) return;
-      const deltaX = event.clientX - lastX, deltaY = event.clientY - lastY;
-      if ((event.clientX === 0 && event.clientY === 0) || Math.abs(deltaX) > 180 || Math.abs(deltaY) > 180) return;
+      const deltaX = event.clientX - downX, deltaY = event.clientY - downY;
+      if (event.clientX === 0 && event.clientY === 0) return;
       if (!moved && Math.hypot(event.clientX-downX,event.clientY-downY) < 3) return;
-      if (Math.hypot(deltaX, deltaY) < .25) return;
       moved = true;
-      trigger.x = Math.max(0, trigger.x + deltaX / zoom);
-      trigger.y = Math.max(0, trigger.y + deltaY / zoom);
-      lastX=event.clientX; lastY=event.clientY;
+      trigger.x = Math.max(0, originX + deltaX / zoom);
+      trigger.y = Math.max(0, originY + deltaY / zoom);
       card.style.left = `${trigger.x}px`; card.style.top = `${trigger.y}px`;
     };
     const finishTriggerDrag = (event: PointerEvent, cancelled: boolean): void => {
@@ -132,10 +130,7 @@ function renderMap(host: HTMLElement): void {
       event.preventDefault(); event.stopPropagation();
       if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
       pointerId = null; dragBounds = null;
-      if (cancelled) {
-        trigger.x = originX; trigger.y = originY; card.style.left = `${originX}px`; card.style.top = `${originY}px`; moved = false;
-        return;
-      }
+      if (cancelled && !moved) return;
       if (moved) { suppressClick = true; commit(before, 'Activador movido'); }
     };
     handle.onpointerup = (event) => finishTriggerDrag(event, false);
@@ -145,6 +140,7 @@ function renderMap(host: HTMLElement): void {
   host.querySelector<HTMLButtonElement>('[data-zoom-out]')!.onclick = () => { const before = snap(); project.settings.zoom = Math.max(.45, project.settings.zoom - .1); commit(before); };
   host.querySelector<HTMLButtonElement>('[data-fit]')!.onclick = () => { const before = snap(); project.settings.zoom = 1; project.settings.mapX = 0; project.settings.mapY = 0; commit(before, 'Mapa centrado'); };
   host.querySelector<HTMLInputElement>('[data-free-move]')!.onchange = (event) => { const before = snap(); project.settings.freeMapMovement = (event.currentTarget as HTMLInputElement).checked; commit(before); };
+  host.querySelector<HTMLInputElement>('[data-move-triggers]')!.onchange = (event) => { const before = snap(); project.settings.moveTriggers = (event.currentTarget as HTMLInputElement).checked; commit(before); };
 }
 
 function renderAction(action: StudioAction, index: number): string {
@@ -181,10 +177,10 @@ function renderLua(host: HTMLElement): void {
 }
 
 function renderConfig(host: HTMLElement): void {
-  host.innerHTML = `<div class="config-grid"><section><h2>Proyecto</h2><label>Título<input data-project-title value="${html(project.title)}"></label><label>Descripción<textarea data-project-description>${html(project.description)}</textarea></label><label>Lua global previo a los activadores<textarea data-preamble spellcheck="false">${html(project.preamble)}</textarea></label></section><section><h2>Comportamiento</h2><label class="check"><input data-setting="keepTabOnAdd" type="checkbox" ${project.settings.keepTabOnAdd ? 'checked' : ''}> Mantener la pestaña al añadir un activador</label><label class="check"><input data-setting="showCodeOnMap" type="checkbox" ${project.settings.showCodeOnMap ? 'checked' : ''}> Mostrar código en el mapa</label><label class="check"><input data-setting="freeMapMovement" type="checkbox" ${project.settings.freeMapMovement ? 'checked' : ''}> Movimiento libre del mapa</label><label class="check"><input data-setting="easyMode" type="checkbox" ${project.settings.easyMode ? 'checked' : ''}> Reemplazar llamadas por nombres fáciles</label><label class="check"><input data-setting="grid" type="checkbox" ${project.settings.grid ? 'checked' : ''}> Mostrar cuadrícula</label><button data-reset-map>Restablecer posición del mapa</button></section><section><h2>Seguridad</h2><p>Máximo 2.5 MB. El Studio no ejecuta Lua. Los bloques no reconocidos se mantienen visibles como Lua libre.</p><button data-run-scan>Analizar proyecto</button><pre data-config-result></pre></section></div>`;
+  host.innerHTML = `<div class="config-grid"><section><h2>Proyecto</h2><label>Título<input data-project-title value="${html(project.title)}"></label><label>Descripción<textarea data-project-description>${html(project.description)}</textarea></label><label>Lua global previo a los activadores<textarea data-preamble spellcheck="false">${html(project.preamble)}</textarea></label></section><section><h2>Comportamiento</h2><label class="check"><input data-setting="keepTabOnAdd" type="checkbox" ${project.settings.keepTabOnAdd ? 'checked' : ''}> Mantener la pestaña al añadir un activador</label><label class="check"><input data-setting="showCodeOnMap" type="checkbox" ${project.settings.showCodeOnMap ? 'checked' : ''}> Mostrar código en el mapa</label><label class="check"><input data-setting="freeMapMovement" type="checkbox" ${project.settings.freeMapMovement ? 'checked' : ''}> Permitir mover el mapa</label><label class="check"><input data-setting="moveTriggers" type="checkbox" ${project.settings.moveTriggers ? 'checked' : ''}> Permitir mover activadores</label><label class="check"><input data-setting="easyMode" type="checkbox" ${project.settings.easyMode ? 'checked' : ''}> Reemplazar llamadas por nombres fáciles</label><label class="check"><input data-setting="grid" type="checkbox" ${project.settings.grid ? 'checked' : ''}> Mostrar cuadrícula</label><button data-reset-map>Restablecer posición del mapa</button></section><section><h2>Seguridad</h2><p>Máximo 2.5 MB. El Studio no ejecuta Lua. Los bloques no reconocidos se mantienen visibles como Lua libre.</p><button data-run-scan>Analizar proyecto</button><pre data-config-result></pre></section></div>`;
   const bind = (selector: string, apply: (value: string) => void) => { const input = host.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector); if (input) input.onchange = () => { const before = snap(); apply(input.value); commit(before); }; };
   bind('[data-project-title]', (value) => project.title = value); bind('[data-project-description]', (value) => project.description = value); bind('[data-preamble]', (value) => project.preamble = value);
-  host.querySelectorAll<HTMLInputElement>('[data-setting]').forEach((input) => input.onchange = () => { const before = snap(), key = input.dataset.setting as 'keepTabOnAdd' | 'showCodeOnMap' | 'freeMapMovement' | 'easyMode' | 'grid'; project.settings[key] = input.checked; commit(before); });
+  host.querySelectorAll<HTMLInputElement>('[data-setting]').forEach((input) => input.onchange = () => { const before = snap(), key = input.dataset.setting as 'keepTabOnAdd' | 'showCodeOnMap' | 'freeMapMovement' | 'moveTriggers' | 'easyMode' | 'grid'; project.settings[key] = input.checked; commit(before); });
   host.querySelector<HTMLButtonElement>('[data-reset-map]')!.onclick = () => { const before = snap(); project.settings.mapX = 0; project.settings.mapY = 0; project.settings.zoom = 1; commit(before); };
   host.querySelector<HTMLButtonElement>('[data-run-scan]')!.onclick = () => { const result = scanLua(generateLua(project)); host.querySelector<HTMLElement>('[data-config-result]')!.textContent = JSON.stringify(result, null, 2); };
 }
