@@ -101,40 +101,46 @@ function renderMap(host: HTMLElement): void {
     const trigger = project.triggers.find((item) => item.id === card.dataset.mapTrigger);
     const handle = card.querySelector<HTMLButtonElement>('.event-block');
     if (!trigger || !handle) return;
-    let pointerId: number | null = null, before = '', downX = 0, downY = 0, originX = 0, originY = 0, moved = false, suppressClick = false, dragBounds: DOMRect | null = null;
+    let before = '', downX = 0, downY = 0, originX = 0, originY = 0, moved = false, suppressClick = false, dragging = false;
     handle.onclick = (event) => {
       if (suppressClick) { event.preventDefault(); suppressClick = false; return; }
       activeTriggerId = trigger.id; render();
     };
     if (!project.settings.moveTriggers) return;
-    handle.onpointerdown = (event) => {
-      if (event.pointerType === 'mouse' && event.button !== 0) return;
+    handle.onmousedown = (event) => {
+      if (event.button !== 0 || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY) || (event.clientX === 0 && event.clientY === 0)) return;
       event.preventDefault(); event.stopPropagation();
-      pointerId = event.pointerId; before = snap(); downX = event.clientX; downY = event.clientY; originX = trigger.x; originY = trigger.y; moved = false; dragBounds = map.getBoundingClientRect();
-      handle.setPointerCapture(event.pointerId);
+      before = snap(); downX = event.clientX; downY = event.clientY; originX = trigger.x; originY = trigger.y; moved = false; dragging = true;
+      window.addEventListener('mousemove', moveTrigger, true);
+      window.addEventListener('mouseup', finishTrigger, true);
+      window.addEventListener('blur', finishTrigger, true);
     };
-    handle.onpointermove = (event) => {
-      if (event.pointerId !== pointerId || !handle.hasPointerCapture(event.pointerId) || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
-      if (event.pointerType === 'mouse' && (event.buttons & 1) === 0) return;
-      if (dragBounds && (event.clientX < dragBounds.left || event.clientX > dragBounds.right || event.clientY < dragBounds.top || event.clientY > dragBounds.bottom)) return;
+    const moveTrigger = (event: MouseEvent): void => {
+      if (!dragging || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY) || (event.clientX === 0 && event.clientY === 0)) return;
+      if ((event.buttons & 1) === 0) { finishTrigger(); return; }
       const deltaX = event.clientX - downX, deltaY = event.clientY - downY;
-      if (event.clientX === 0 && event.clientY === 0) return;
       if (!moved && Math.hypot(event.clientX-downX,event.clientY-downY) < 3) return;
+      event.preventDefault(); event.stopPropagation();
       moved = true;
       trigger.x = Math.max(0, originX + deltaX / zoom);
       trigger.y = Math.max(0, originY + deltaY / zoom);
       card.style.left = `${trigger.x}px`; card.style.top = `${trigger.y}px`;
     };
-    const finishTriggerDrag = (event: PointerEvent, cancelled: boolean): void => {
-      if (event.pointerId !== pointerId) return;
-      event.preventDefault(); event.stopPropagation();
-      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
-      pointerId = null; dragBounds = null;
-      if (cancelled && !moved) return;
-      if (moved) { suppressClick = true; commit(before, 'Activador movido'); }
+    const finishTrigger = (event?: MouseEvent | Event): void => {
+      if (!dragging) return;
+      event?.preventDefault(); event?.stopPropagation();
+      dragging = false;
+      window.removeEventListener('mousemove', moveTrigger, true);
+      window.removeEventListener('mouseup', finishTrigger, true);
+      window.removeEventListener('blur', finishTrigger, true);
+      if (!moved) return;
+      suppressClick = true;
+      if (before !== snap()) { history.push(before); history = history.slice(-150); future = []; }
+      project.updatedAt = new Date().toISOString();
+      window.clearTimeout(saveTimer);
+      void saveAll();
+      status(`Activador guardado en X ${Math.round(trigger.x)}, Y ${Math.round(trigger.y)}`);
     };
-    handle.onpointerup = (event) => finishTriggerDrag(event, false);
-    handle.onpointercancel = (event) => finishTriggerDrag(event, true);
   });
   host.querySelector<HTMLButtonElement>('[data-zoom-in]')!.onclick = () => { const before = snap(); project.settings.zoom = Math.min(1.8, project.settings.zoom + .1); commit(before); };
   host.querySelector<HTMLButtonElement>('[data-zoom-out]')!.onclick = () => { const before = snap(); project.settings.zoom = Math.max(.45, project.settings.zoom - .1); commit(before); };
