@@ -93,7 +93,7 @@ function renderMap(host: HTMLElement): void {
     if (map.hasPointerCapture(event.pointerId)) map.releasePointerCapture(event.pointerId);
     mapDragging = false; mapPointerId = null; mapDragBounds = null;
     if (cancelled) { project.settings.mapX = mapOriginX; project.settings.mapY = mapOriginY; applyTransform(); return; }
-    commit(mapBefore, 'Mapa desplazado');
+    if(mapBefore!==snap()){history.push(mapBefore);history=history.slice(-150);future=[];project.updatedAt=new Date().toISOString();void saveAll();status('Mapa desplazado sin alterar activadores');}
   };
   map.onpointerup = (event) => finishMapDrag(event, false);
   map.onpointercancel = (event) => finishMapDrag(event, true);
@@ -101,16 +101,19 @@ function renderMap(host: HTMLElement): void {
     const trigger = project.triggers.find((item) => item.id === card.dataset.mapTrigger);
     const handle = card.querySelector<HTMLButtonElement>('.event-block');
     if (!trigger || !handle) return;
-    let before = '', downX = 0, downY = 0, originX = 0, originY = 0, moved = false, suppressClick = false, dragging = false;
+    let before = '', downX = 0, downY = 0, lastX = 0, lastY = 0, originX = 0, originY = 0, moved = false, suppressClick = false, dragging = false;
     handle.onclick = (event) => {
       if (suppressClick) { event.preventDefault(); suppressClick = false; return; }
-      activeTriggerId = trigger.id; render();
+      activeTriggerId = trigger.id;
+      host.querySelectorAll<HTMLElement>('[data-map-trigger]').forEach((item)=>item.classList.toggle('active',item.dataset.mapTrigger===trigger.id));
+      query<HTMLElement>('[data-triggers]').querySelectorAll<HTMLElement>('[data-trigger-row]').forEach((item)=>item.classList.toggle('active',item.dataset.triggerRow===trigger.id));
+      renderInspector();
     };
     if (!project.settings.moveTriggers) return;
     handle.onmousedown = (event) => {
       if (event.button !== 0 || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY) || (event.clientX === 0 && event.clientY === 0)) return;
       event.preventDefault(); event.stopPropagation();
-      before = snap(); downX = event.clientX; downY = event.clientY; originX = trigger.x; originY = trigger.y; moved = false; dragging = true;
+      before = snap(); downX = lastX = event.clientX; downY = lastY = event.clientY; originX = trigger.x; originY = trigger.y; moved = false; dragging = true;
       window.addEventListener('mousemove', moveTrigger, true);
       window.addEventListener('mouseup', finishTrigger, true);
       window.addEventListener('blur', finishTrigger, true);
@@ -118,10 +121,13 @@ function renderMap(host: HTMLElement): void {
     const moveTrigger = (event: MouseEvent): void => {
       if (!dragging || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY) || (event.clientX === 0 && event.clientY === 0)) return;
       if ((event.buttons & 1) === 0) { finishTrigger(); return; }
+      const bounds=map.getBoundingClientRect();if(event.clientX<bounds.left-80||event.clientX>bounds.right+80||event.clientY<bounds.top-80||event.clientY>bounds.bottom+80)return;
+      if(Math.abs(event.clientX-lastX)>120||Math.abs(event.clientY-lastY)>120)return;
       const deltaX = event.clientX - downX, deltaY = event.clientY - downY;
       if (!moved && Math.hypot(event.clientX-downX,event.clientY-downY) < 3) return;
       event.preventDefault(); event.stopPropagation();
       moved = true;
+      lastX=event.clientX;lastY=event.clientY;
       trigger.x = Math.max(0, originX + deltaX / zoom);
       trigger.y = Math.max(0, originY + deltaY / zoom);
       card.style.left = `${trigger.x}px`; card.style.top = `${trigger.y}px`;

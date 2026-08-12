@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 0.2.4 — 2026-08-11
+
+- Actualiza el UID del autor a `106307078` en los scripts exportados.
+- Seleccionar un activador ya no reconstruye el mapa ni cambia sus coordenadas.
+- Mover el mapa conserva intactas las posiciones individuales de los activadores.
+- Descarta saltos anómalos del puntero antes de escribir coordenadas.
+- Repara una sola vez proyectos antiguos cuyos activadores quedaron superpuestos en `0,0`.
+
 ## 0.2.3 — 2026-08-11
 
 - Sustituye el arrastre de activadores basado en Pointer Events por eventos de ratón estables en WebView2.
