@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 0.2.3 — 2026-08-11
+
+- Sustituye el arrastre de activadores basado en Pointer Events por eventos de ratón estables en WebView2.
+- Evita reconstruir el lienzo al soltar, eliminando el regreso visual hacia arriba.
+- Guarda inmediatamente las coordenadas `x` y `y` de cada activador dentro de su proyecto.
+
 ## 0.2.2 — 2026-08-11
 
 - Corrige el regreso del activador a su posición anterior al soltarlo.

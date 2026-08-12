@@ -1,4 +1,4 @@
-# Mini World ID Studio 0.2.2 — MIT Local
+# Mini World ID Studio 0.2.3 — MIT Local
 
 [![Licencia MIT](https://img.shields.io/badge/licencia-MIT-35ad82.svg)](LICENSE)
 [![Verificación](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml/badge.svg)](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml)
