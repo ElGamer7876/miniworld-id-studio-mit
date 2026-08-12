@@ -8,7 +8,7 @@ export type StudioCondition = { id: string; field: string; operator: '==' | '~='
 export type StudioVariable = { id: string; name: string; value: string; valueType: 'string' | 'number' | 'boolean'; scope: 'local' | 'global' };
 export type StudioTrigger = { id: string; name: string; event: string; functionName: string; enabled: boolean; x: number; y: number; conditions: StudioCondition[]; variables: StudioVariable[]; actions: StudioAction[] };
 export type StudioSettings = { keepTabOnAdd: boolean; showCodeOnMap: boolean; freeMapMovement: boolean; moveTriggers: boolean; easyMode: boolean; grid: boolean; zoom: number; mapX: number; mapY: number };
-export type StudioProject = { format: 'miniworld-id-studio'; version: 2; id: number; title: string; description: string; preamble: string; createdAt: string; updatedAt: string; activeView: 'map' | 'editor' | 'lua' | 'config'; settings: StudioSettings; triggers: StudioTrigger[] };
+export type StudioProject = { format: 'miniworld-id-studio'; version: 2; layoutVersion: number; id: number; title: string; description: string; preamble: string; createdAt: string; updatedAt: string; activeView: 'map' | 'editor' | 'lua' | 'config'; settings: StudioSettings; triggers: StudioTrigger[] };
 export type SecurityResult = { status: 'safe' | 'warning' | 'blocked'; blocked: string[]; warnings: string[]; calls: string[]; executed: false };
 
 const uid = (prefix: string): string => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
@@ -18,7 +18,7 @@ const settings = (): StudioSettings => ({ keepTabOnAdd: false, showCodeOnMap: tr
 
 export function createProject(projectId = 1): StudioProject {
   const now = new Date().toISOString();
-  return { format: 'miniworld-id-studio', version: 2, id: projectId, title: 'Mi proyecto de Mini World', description: '', preamble: '', createdAt: now, updatedAt: now, activeView: 'map', settings: settings(), triggers: [createTrigger(1)] };
+  return { format: 'miniworld-id-studio', version: 2, layoutVersion: 1, id: projectId, title: 'Mi proyecto de Mini World', description: '', preamble: '', createdAt: now, updatedAt: now, activeView: 'map', settings: settings(), triggers: [createTrigger(1)] };
 }
 
 export function createTrigger(index: number): StudioTrigger {
@@ -80,7 +80,8 @@ function normalizeAction(input: Partial<StudioAction>): StudioAction {
 
 function normalizeTrigger(input: Partial<StudioTrigger>, index: number): StudioTrigger {
   const base = createTrigger(index + 1);
-  return { ...base, ...input, id: String(input.id || base.id), name: String(input.name || base.name).slice(0, 80), event: String(input.event || base.event), functionName: identifier(String(input.functionName || base.functionName)), x: Math.max(0, Number(input.x) || 0), y: Math.max(0, Number(input.y) || 0), conditions: Array.isArray(input.conditions) ? input.conditions.map((item) => ({ ...createCondition(), ...item, id: String(item.id || uid('condition')) })) : [], variables: Array.isArray(input.variables) ? input.variables.map((item) => ({ ...createVariable(), ...item, id: String(item.id || uid('variable')) })) : [], actions: Array.isArray(input.actions) ? input.actions.map(normalizeAction) : [] };
+  const parsedX=Number(input.x),parsedY=Number(input.y);
+  return { ...base, ...input, id: String(input.id || base.id), name: String(input.name || base.name).slice(0, 80), event: String(input.event || base.event), functionName: identifier(String(input.functionName || base.functionName)), x: Number.isFinite(parsedX) ? Math.max(0,parsedX) : base.x, y: Number.isFinite(parsedY) ? Math.max(0,parsedY) : base.y, conditions: Array.isArray(input.conditions) ? input.conditions.map((item) => ({ ...createCondition(), ...item, id: String(item.id || uid('condition')) })) : [], variables: Array.isArray(input.variables) ? input.variables.map((item) => ({ ...createVariable(), ...item, id: String(item.id || uid('variable')) })) : [], actions: Array.isArray(input.actions) ? input.actions.map(normalizeAction) : [] };
 }
 
 export function parseProject(text: string): StudioProject {
@@ -88,7 +89,10 @@ export function parseProject(text: string): StudioProject {
   const input = JSON.parse(text) as Partial<StudioProject>;
   if (input.format !== 'miniworld-id-studio' || !Array.isArray(input.triggers)) throw new Error('Proyecto no compatible.');
   const base = createProject(Math.max(1, Number(input.id) || 1));
-  return { ...base, ...input, version: 2, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'config'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}) }, triggers: input.triggers.map(normalizeTrigger) };
+  const legacyLayout=Number(input.layoutVersion||0)<1;
+  const triggers=input.triggers.map(normalizeTrigger);if(legacyLayout)triggers.forEach((trigger,index)=>{if(trigger.x===0&&trigger.y===0){const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;}});
+  const occupied=new Set<string>();triggers.forEach((trigger,index)=>{const key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;if(occupied.has(key)){const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;}occupied.add(`${Math.round(trigger.x)}:${Math.round(trigger.y)}`);});
+  return { ...base, ...input, version: 2, layoutVersion: 1, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'config'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}) }, triggers };
 }
 
 export function importLua(source: string, projectId: number): StudioProject {
