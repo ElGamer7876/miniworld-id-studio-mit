@@ -1,4 +1,5 @@
 import { AUTHOR_LINE } from './edition.ts';
+import { methodByKey, methodDefaultValue } from './catalog.ts';
 export { AUTHOR_LINE } from './edition.ts';
 export const MAX_PROJECT_BYTES = 2_621_440;
 
@@ -27,7 +28,7 @@ export function createTrigger(index: number): StudioTrigger {
 
 export function createAction(type: ActionType): StudioAction {
   const values: Record<ActionType, [string, string]> = {
-    message: ['Enviar mensaje', '¡Hola, Mini World!'], wait: ['Esperar', '1'], api: ['Llamar API', ''], raw: ['Lua libre', '-- Instrucción conservada'], if: ['Si se cumple', 'e.eventobjid ~= nil'], repeat: ['Repetir', '3'], set_variable: ['Cambiar variable', 'valor = 1'],
+    message: ['Enviar mensaje', '¡Hola, Mini World!'], wait: ['Esperar', '1'], api: ['Llamar API', methodDefaultValue(methodByKey('Chat:sendSystemMsg')!)], raw: ['Lua libre', '-- Instrucción conservada'], if: ['Si se cumple', 'e.eventobjid ~= nil'], repeat: ['Repetir', '3'], set_variable: ['Cambiar variable', 'valor = 1'],
   };
   return { id: uid('action'), type, label: values[type][0], value: values[type][1], method: type === 'api' ? 'Chat:sendSystemMsg' : undefined, condition: type === 'if' ? values[type][1] : undefined, children: type === 'if' || type === 'repeat' ? [] : undefined };
 }

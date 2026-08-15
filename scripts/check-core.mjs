@@ -8,6 +8,7 @@ import {
   importLua,
   parseProject,
 } from '../src/studio-core.ts';
+import { METHODS, describeMethodCall, methodByKey, methodDefaultValue, splitLuaArguments } from '../src/catalog.ts';
 
 const project = createProject(1);
 project.triggers[0].actions.push(createAction('message'));
@@ -22,6 +23,21 @@ if (scanLua('os.execute("programa")').status !== 'blocked') {
 if (validateProject(project).length !== 0) {
   throw new Error('Un proyecto nuevo no superó la validación.');
 }
+const openUi = methodByKey('Player:openUIView');
+if (!openUi || !describeMethodCall(openUi, methodDefaultValue(openUi)).includes('[e.eventobjid]')) {
+  throw new Error('La acción Abrir interfaz no contiene valores y cadena visual.');
+}
+if (METHODS.some((method) => method.params.some((param) => !param.label || !param.defaultValue))) {
+  throw new Error('Existe una acción con parámetros sin etiqueta o valor inicial.');
+}
+for (const method of METHODS) {
+  const probe = createProject(99), action = createAction('api');
+  action.method = method.key; action.value = methodDefaultValue(method); action.targets = method.results.join(', ');
+  probe.triggers[0].actions.push(action);
+  if (!generateLua(probe).includes(`${method.key}(${action.value})`)) throw new Error(`No se generó Lua para ${method.key}.`);
+}
+const complexArgs = splitLuaArguments('e.eventobjid, {x=1, y=2}, "texto, con coma"');
+if (complexArgs.length !== 3) throw new Error('El separador de argumentos Lua dañó tablas o cadenas.');
 
 const imported = importLua(`local function alRetirar(e)
   World:despawnActor(e.eventobjid)
