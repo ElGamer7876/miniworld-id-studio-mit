@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 0.3.0 — 2026-08-11
+
+- Convierte las acciones en frases visuales con un campo por parámetro.
+- Añade valores iniciales, argumentos opcionales y resultados Lua sugeridos.
+- Amplía el catálogo a 52 acciones documentadas, incluidas las APIs de interfaz.
+- Permite editar argumentos avanzados sin romper cadenas ni tablas con comas.
+- Comprueba automáticamente la generación Lua de todas las acciones.
+
 ## 0.2.4 — 2026-08-11
 
 - Actualiza el UID del autor a `106307078` en los scripts exportados.
