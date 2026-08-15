@@ -9,7 +9,8 @@ export type StudioCondition = { id: string; field: string; operator: '==' | '~='
 export type StudioVariable = { id: string; name: string; value: string; valueType: 'string' | 'number' | 'boolean'; scope: 'local' | 'global' };
 export type StudioTrigger = { id: string; name: string; event: string; functionName: string; enabled: boolean; x: number; y: number; conditions: StudioCondition[]; variables: StudioVariable[]; actions: StudioAction[] };
 export type StudioSettings = { keepTabOnAdd: boolean; showCodeOnMap: boolean; freeMapMovement: boolean; moveTriggers: boolean; easyMode: boolean; grid: boolean; zoom: number; mapX: number; mapY: number };
-export type StudioProject = { format: 'miniworld-id-studio'; version: 2; layoutVersion: number; id: number; title: string; description: string; preamble: string; createdAt: string; updatedAt: string; activeView: 'map' | 'editor' | 'lua' | 'config'; settings: StudioSettings; triggers: StudioTrigger[] };
+export type LocalMapLink={mapId:string;dataVersion:string;uiReferences:Array<{uiId:string;elementId?:string}>};
+export type StudioProject = { format: 'miniworld-id-studio'; version: 2; layoutVersion: number; id: number; title: string; description: string; preamble: string; createdAt: string; updatedAt: string; activeView: 'map' | 'editor' | 'lua' | 'config' | 'localmaps'; settings: StudioSettings; triggers: StudioTrigger[]; localMap?:LocalMapLink };
 export type SecurityResult = { status: 'safe' | 'warning' | 'blocked'; blocked: string[]; warnings: string[]; calls: string[]; executed: false };
 
 const uid = (prefix: string): string => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
@@ -93,7 +94,7 @@ export function parseProject(text: string): StudioProject {
   const legacyLayout=Number(input.layoutVersion||0)<1;
   const triggers=input.triggers.map(normalizeTrigger);if(legacyLayout)triggers.forEach((trigger,index)=>{if(trigger.x===0&&trigger.y===0){const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;}});
   const occupied=new Set<string>();triggers.forEach((trigger,index)=>{const key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;if(occupied.has(key)){const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;}occupied.add(`${Math.round(trigger.x)}:${Math.round(trigger.y)}`);});
-  return { ...base, ...input, version: 2, layoutVersion: 1, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'config'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}) }, triggers };
+  return { ...base, ...input, version: 2, layoutVersion: 1, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'config', 'localmaps'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}) }, triggers };
 }
 
 export function importLua(source: string, projectId: number): StudioProject {
