@@ -1,6 +1,6 @@
 [package]
 name = "miniworld-id-studio-mit"
-version = "0.3.0"
+version = "0.3.1"
 description = "Editor MIT completamente local de activadores y Lua para Mini World"
 authors = ["Mini World ID"]
 edition = "2021"

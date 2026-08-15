@@ -1,4 +1,4 @@
-# Mini World ID Studio 0.3.0 — MIT Local
+# Mini World ID Studio 0.3.1 — MIT Local
 
 [![Licencia MIT](https://img.shields.io/badge/licencia-MIT-35ad82.svg)](LICENSE)
 [![Verificación](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml/badge.svg)](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml)
@@ -10,7 +10,7 @@ GitHub bajo la licencia MIT.
 
 Descarga la versión estable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios y versiones históricas.
 
-El release `0.3.0` ofrece instalador y portable para Windows x64 de dos
+El release `0.3.1` ofrece instalador y portable para Windows x64 de dos
 ediciones. El código fuente de este repositorio corresponde únicamente a la
 edición MIT local:
 
@@ -22,6 +22,16 @@ edición MIT local:
 Incluye el mismo mapa con movimiento, editor de bloques, condiciones,
 variables, catálogo Mini World, conversión Lua, proyectos múltiples,
 deshacer/rehacer y análisis estático que la edición conectada.
+
+## Novedades de 0.3.1
+
+- La edición conectada recupera de forma segura un canje de autorización si la
+  primera respuesta se pierde durante la comunicación con `miniworld.id`.
+- La espera de autorización se cancela correctamente al cerrar la ventana y ya
+  no deja solicitudes pendientes que confundan al usuario.
+- Los estados rechazado, vencido y consumido por otro cliente muestran mensajes
+  diferentes.
+- La edición MIT mantiene intacta su política sin red, cuentas ni analíticas.
 
 ## Novedades de 0.3.0
 
