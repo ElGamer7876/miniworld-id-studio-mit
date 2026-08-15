@@ -1,4 +1,4 @@
-# Mini World ID Studio 0.3.1 — MIT Local
+# Mini World ID Studio 1.0.0 Beta — MIT Local
 
 [![Licencia MIT](https://img.shields.io/badge/licencia-MIT-35ad82.svg)](LICENSE)
 [![Verificación](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml/badge.svg)](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml)
@@ -8,7 +8,7 @@ Editor Tauri 2 completamente local para construir activadores y exportar Lua.
 Esta edición está preparada para publicarse como repositorio independiente en
 GitHub bajo la licencia MIT.
 
-Descarga la versión estable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios y versiones históricas.
+Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.0.0-beta.1` es un prerelease de evaluación y no reemplaza Stable 0.3.1. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
 
 El release `0.3.1` ofrece instalador y portable para Windows x64 de dos
 ediciones. El código fuente de este repositorio corresponde únicamente a la
@@ -22,6 +22,19 @@ edición MIT local:
 Incluye el mismo mapa con movimiento, editor de bloques, condiciones,
 variables, catálogo Mini World, conversión Lua, proyectos múltiples,
 deshacer/rehacer y análisis estático que la edición conectada.
+
+## Novedades de 1.0.0 Beta 1
+
+- Vista de mapas locales con escaneo iniciado únicamente por el usuario.
+- Compatibilidad con `miniworddata410`, `miniworddata402`, `miniworddata1` y
+  `miniworddata110` bajo `%APPDATA%`.
+- Identificación estricta de directorios `w<ID numérico>`; nombres como `www`
+  se descartan.
+- Vínculo opcional entre un mapa y un proyecto del Studio.
+- Sugerencias locales para `uiid` y `elementid` cuando aparecen en texto legible.
+- Sin descifrado, escritura, analíticas ni subida de archivos del juego.
+
+Detalles técnicos: [docs/LOCAL-MAP-INDEX.md](docs/LOCAL-MAP-INDEX.md).
 
 ## Novedades de 0.3.1
 

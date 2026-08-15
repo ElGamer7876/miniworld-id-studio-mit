@@ -1,10 +1,12 @@
 import './styles.css';
 import './pointer-fix.css';
 import './action-fields.css';
+import './local-maps.css';
 import { EVENTS, METHODS, eventById, methodByKey, methodDefaultTargets, methodDefaultValue, splitLuaArguments } from './catalog';
 import { EDITION_LABEL, HAS_NETWORK, checkRemote, openHomepage } from './edition';
 import { createAction, createCondition, createProject, createTrigger, createVariable, generateLua, importLua, scanLua, validateProject, type ActionType, type StudioAction, type StudioProject, type StudioTrigger } from './studio-core';
 import { exportLua, exportProject, importProject, listProjects, persistProjects } from './persistence';
+import { scanLocalMaps, type LocalMapScan } from './local-maps';
 
 const appElement = document.querySelector<HTMLDivElement>('#app');
 if (!appElement) throw new Error('No se encontró #app');
@@ -12,6 +14,7 @@ const app: HTMLDivElement = appElement;
 
 let projects: StudioProject[] = [], project = createProject(), activeTriggerId = project.triggers[0].id;
 let history: string[] = [], future: string[] = [], saveTimer = 0, draggedAction = '', mapDragging = false;
+let localMapScan:LocalMapScan|null=null;
 
 app.innerHTML = `
   <header class="app-bar">
@@ -19,7 +22,7 @@ app.innerHTML = `
     <span class="separator"></span><button data-new>Nuevo</button><button data-import-project>Abrir</button><button data-save-file>Guardar</button><button data-export-lua>Exportar Lua</button>
     <span class="separator"></span><button data-undo>Deshacer</button><button data-redo>Rehacer</button>${HAS_NETWORK ? '<button data-api>Comprobar API</button>' : ''}<span data-status>Local</span>
   </header>
-  <nav class="view-tabs" aria-label="Vistas del proyecto"><button data-view-tab="map">Mapa</button><button data-view-tab="editor">Editor</button><button data-view-tab="lua">Lua</button><button data-view-tab="config">Configuración</button></nav>
+  <nav class="view-tabs" aria-label="Vistas del proyecto"><button data-view-tab="map">Mapa</button><button data-view-tab="editor">Editor</button><button data-view-tab="lua">Lua</button><button data-view-tab="localmaps">Mapas locales</button><button data-view-tab="config">Configuración</button></nav>
   <main class="studio-shell">
     <aside class="project-panel"><div class="panel-title"><strong>Proyectos</strong><button data-add-project title="Nuevo proyecto">+</button></div><div data-projects class="project-list"></div><div class="project-commands"><button data-duplicate-project>Duplicar</button><button data-delete-project>Eliminar</button></div><div class="panel-title"><strong>Activadores</strong><button data-add-trigger title="Nuevo activador">+</button></div><div data-triggers class="trigger-list"></div></aside>
     <section class="workspace"><div data-workspace class="workspace-content"></div></section>
@@ -159,7 +162,7 @@ function renderMap(host: HTMLElement): void {
 function renderAction(action: StudioAction, index: number): string {
   const method = action.type === 'api' ? methodByKey(action.method || '') : undefined;
   const args = splitLuaArguments(action.value);
-  const phrase = method ? method.phrase.replace(/\{([^}]+)\}/g, (_, key: string) => { const paramIndex = method.params.findIndex((param) => param.key === key); const param = method.params[paramIndex]; if (!param) return `[${html(key)}]`; return `<label class="inline-param" title="${html(param.hint || param.label)}"><span>${html(param.label)}${param.optional ? ' (opcional)' : ''}</span><input data-action-param="${index}" data-param-index="${paramIndex}" value="${html(args[paramIndex] || param.defaultValue)}" spellcheck="false"></label>`; }) : '';
+  const phrase = method ? method.phrase.replace(/\{([^}]+)\}/g, (_, key: string) => { const paramIndex = method.params.findIndex((param) => param.key === key); const param = method.params[paramIndex]; if (!param) return `[${html(key)}]`; const list=param.key.toLowerCase().includes('uiid')?' list="local-ui-ids"':param.key.toLowerCase().includes('elementid')?' list="local-element-ids"':'';return `<label class="inline-param" title="${html(param.hint || param.label)}"><span>${html(param.label)}${param.optional ? ' (opcional)' : ''}</span><input data-action-param="${index}" data-param-index="${paramIndex}" value="${html(args[paramIndex] || param.defaultValue)}" spellcheck="false"${list}></label>`; }) : '';
   const resultHint = method?.results.length ? `Sugeridos: ${method.results.join(', ')}` : 'Esta acción no necesita guardar resultados';
   const basicDetails: Record<Exclude<ActionType, 'api'>, string> = {
     message: `<div class="action-sentence">Mostrar mensaje <label class="inline-param"><span>texto</span><input data-action-value="${index}" value="${html(action.value)}"></label></div>`,
@@ -177,6 +180,7 @@ function renderAction(action: StudioAction, index: number): string {
 function renderEditor(host: HTMLElement): void {
   const trigger = activeTrigger();
   host.innerHTML = `<div class="editor-shell"><aside class="block-palette"><label>Buscar bloques<input data-palette-search placeholder="mensaje, mundo, jugador..."></label><section data-basic-palette><strong>Acciones</strong><button data-new-action="message">Mensaje</button><button data-new-action="wait">Esperar</button><button data-new-action="if">Condición Si</button><button data-new-action="repeat">Repetir</button><button data-new-action="set_variable">Variable</button><button data-new-action="raw">Lua libre</button></section><section class="api-palette"><strong>API Mini World</strong><div data-api-palette>${METHODS.map((method) => `<button data-api-method="${method.key}" data-search="${html(`${method.name} ${method.key} ${method.group}`.toLowerCase())}"><span>${html(method.name)}</span><small>${html(method.key)}</small></button>`).join('')}</div></section></aside><div class="block-editor"><div class="editor-event"><span>CUANDO</span><strong>${html(eventById(trigger.event)?.name || trigger.event)}</strong></div><div class="condition-summary">${trigger.conditions.length ? trigger.conditions.map((condition) => `<span>SI ${html(condition.field)} ${condition.operator} ${html(condition.value)}</span>`).join('') : '<span>Sin condiciones iniciales</span>'}</div><div class="action-stack" data-action-stack>${trigger.actions.map(renderAction).join('') || '<div class="empty-editor">Añade o arrastra una acción desde la paleta.</div>'}</div></div></div>`;
+  const uiIds=Array.from(new Set(project.localMap?.uiReferences.map(item=>item.uiId)||[]));const elementIds=Array.from(new Set(project.localMap?.uiReferences.flatMap(item=>item.elementId?[item.elementId]:[])||[]));host.insertAdjacentHTML('afterbegin',`<datalist id="local-ui-ids">${uiIds.map(id=>`<option value="${html(id)}"></option>`).join('')}</datalist><datalist id="local-element-ids">${elementIds.map(id=>`<option value="${html(id)}"></option>`).join('')}</datalist>${project.localMap?`<div class="local-map-context">Mapa local ${html(project.localMap.mapId)} · ${uiIds.length} UI</div>`:''}`);
   host.querySelectorAll<HTMLButtonElement>('[data-new-action]').forEach((button) => button.onclick = () => addAction(button.dataset.newAction as ActionType));
   host.querySelectorAll<HTMLButtonElement>('[data-api-method]').forEach((button) => { button.draggable = true; button.onclick = () => addAction('api', String(button.dataset.apiMethod)); button.ondragstart = (event) => event.dataTransfer?.setData('application/x-mw-method', String(button.dataset.apiMethod)); });
   const search = host.querySelector<HTMLInputElement>('[data-palette-search]'); if (search) search.oninput = () => host.querySelectorAll<HTMLElement>('[data-api-method]').forEach((button) => button.hidden = !String(button.dataset.search).includes(search.value.trim().toLowerCase()));
@@ -200,6 +204,11 @@ function renderLua(host: HTMLElement): void {
   host.querySelector<HTMLButtonElement>('[data-copy-lua]')!.onclick = async () => { await navigator.clipboard.writeText(lua); status('Lua copiado'); };
   host.querySelector<HTMLButtonElement>('[data-download-lua]')!.onclick = () => void exportLua(project, lua);
   host.querySelector<HTMLButtonElement>('[data-open-converter]')!.onclick = () => query<HTMLDialogElement>('[data-lua-dialog]').showModal();
+}
+
+async function renderLocalMaps(host:HTMLElement):Promise<void>{
+  host.innerHTML=`<section class="local-maps-view"><header><div><h2>Mapas locales de Mini World</h2><p>Escaneo manual, local y de solo lectura.</p></div><button data-scan>${localMapScan?'Volver a escanear':'Escanear mapas'}</button></header><div data-results>${localMapScan?'':'<div class="local-map-empty"><strong>Escaneo desactivado</strong><p>Sólo se revisan las carpetas conocidas y mapas w + ID numérico.</p></div>'}</div></section>`;const results=host.querySelector<HTMLElement>('[data-results]')!;
+  const paint=()=>{if(!localMapScan)return;const roots=localMapScan.roots.map(root=>`<li class="${root.available?'available':''}"><strong>${html(root.dataVersion)}</strong><span>${root.available?`${root.mapCount} mapa(s)`:'No instalada'}</span></li>`).join('');const maps=localMapScan.maps.map(map=>{const linked=project.localMap?.mapId===map.mapId&&project.localMap.dataVersion===map.dataVersion;return `<article class="local-map-card ${linked?'linked':''}"><header><div><h3>Mapa ${html(map.mapId)}</h3><p>Datos ${html(map.dataVersion)}${map.gameVersion?` · juego ${html(map.gameVersion)}`:''}</p></div><button data-link="${html(map.mapId)}" data-version="${html(map.dataVersion)}">${linked?'Desvincular':'Usar en este proyecto'}</button></header><dl><div><dt>Escenas</dt><dd>${map.sceneNames.length}</dd></div><div><dt>Archivos UI</dt><dd>${map.customUiFiles}</dd></div><div><dt>IDs</dt><dd>${map.uiReferences.length}</dd></div></dl>${map.warnings.map(w=>`<p class="local-map-warning">${html(w)}</p>`).join('')}</article>`}).join('');results.innerHTML=`<p class="privacy-note">${html(localMapScan.privacy)}</p><ul class="scan-roots">${roots}</ul><div class="local-map-grid">${maps||'<p>No se encontraron mapas.</p>'}</div>`;results.querySelectorAll<HTMLButtonElement>('[data-link]').forEach(button=>button.onclick=()=>{const map=localMapScan?.maps.find(item=>item.mapId===button.dataset.link&&item.dataVersion===button.dataset.version);if(!map)return;const before=snap();if(project.localMap?.mapId===map.mapId&&project.localMap.dataVersion===map.dataVersion)project.localMap=undefined;else project.localMap={mapId:map.mapId,dataVersion:map.dataVersion,uiReferences:map.uiReferences.map(item=>({uiId:item.uiId,elementId:item.elementId}))};commit(before,project.localMap?'Mapa local vinculado':'Mapa local desvinculado')})};paint();host.querySelector<HTMLButtonElement>('[data-scan]')!.onclick=async event=>{const button=event.currentTarget as HTMLButtonElement;button.disabled=true;button.textContent='Escaneando…';try{localMapScan=await scanLocalMaps();paint();status(`${localMapScan.maps.length} mapa(s) encontrado(s)`)}catch(error){results.innerHTML=`<p>${html(error instanceof Error?error.message:String(error))}</p>`}finally{button.disabled=false;button.textContent='Volver a escanear'}};
 }
 
 function renderConfig(host: HTMLElement): void {
@@ -236,7 +245,7 @@ function render(): void {
   renderProjects(); renderTriggers(); renderInspector();
   app.querySelectorAll<HTMLButtonElement>('[data-view-tab]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.viewTab === project.activeView)));
   const host = query<HTMLElement>('[data-workspace]');
-  if (project.activeView === 'map') renderMap(host); else if (project.activeView === 'editor') renderEditor(host); else if (project.activeView === 'lua') renderLua(host); else renderConfig(host);
+  if (project.activeView === 'map') renderMap(host); else if (project.activeView === 'editor') renderEditor(host); else if (project.activeView === 'lua') renderLua(host); else if(project.activeView==='localmaps')void renderLocalMaps(host);else renderConfig(host);
   const errors = validateProject(project); if (errors.length) status(`${errors.length} error(es)`);
 }
 

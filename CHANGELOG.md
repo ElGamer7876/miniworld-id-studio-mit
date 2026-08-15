@@ -1,5 +1,14 @@
 # Historial de cambios
 
+## 1.0.0-beta.1 — 2026-08-15
+
+- Añade un índice manual y de solo lectura para mapas locales de Mini World.
+- Reconoce únicamente carpetas `w` seguidas por un ID numérico.
+- Revisa las instalaciones 4.10, 4.02, 1.x y 1.10 sin leer cuentas o roles.
+- Vincula opcionalmente un mapa a un proyecto y sugiere IDs de interfaz detectados.
+- Nunca descifra, modifica ni sube datos del juego.
+- Publicación de prueba: no sustituye a la versión Stable 0.3.1.
+
 ## 0.3.1 — 2026-08-14
 
 - Hace idempotente y seguro el canje de autorización de la edición conectada.
