@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 0.3.1 — 2026-08-14
+
+- Hace idempotente y seguro el canje de autorización de la edición conectada.
+- Cancela el sondeo de cuenta cuando se cierra su ventana.
+- Distingue autorizaciones rechazadas, vencidas y consumidas por otro cliente.
+- Añade la introducción visual de Studio a la página oficial.
+- Mantiene la edición MIT completamente local y sin conexiones externas.
+
 ## 0.3.0 — 2026-08-11
 
 - Convierte las acciones en frases visuales con un campo por parámetro.
