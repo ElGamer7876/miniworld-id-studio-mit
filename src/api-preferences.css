@@ -1,0 +1,5 @@
+.api-method-group{display:grid;gap:5px}
+.api-method-group>strong{position:sticky;top:0;z-index:1;padding:6px 3px;background:#171d25;color:#8fa5b8;font-size:.68rem;text-transform:uppercase}
+.api-method-row{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:4px}
+.api-method-row>[data-api-method]{min-width:0}
+.api-method-row .favorite-method{display:grid;place-items:center;padding:0;border-color:#6a5b32;background:#3c3421;color:#ffd76a;font-size:1rem}

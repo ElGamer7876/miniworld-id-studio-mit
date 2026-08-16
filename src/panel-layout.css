@@ -1,0 +1,9 @@
+#app{--studio-project-width:230px;--studio-inspector-width:390px}
+.studio-shell{grid-template-columns:var(--studio-project-width) minmax(480px,1fr) var(--studio-inspector-width)}
+.view-tabs{padding-left:var(--studio-project-width)}
+#app.project-panel-hidden{--studio-project-width:0px}
+#app.inspector-hidden{--studio-inspector-width:0px}
+#app.project-panel-hidden .project-panel,#app.inspector-hidden .inspector{display:none}
+.panel-toggle[aria-pressed="false"]{color:#8292a2;background:#19212a}
+@media(max-width:1100px){#app{--studio-project-width:190px;--studio-inspector-width:320px}}
+@media(max-width:820px){#app{--studio-project-width:170px;--studio-inspector-width:0px}#app .inspector{display:none}}
