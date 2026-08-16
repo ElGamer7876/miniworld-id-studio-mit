@@ -1,0 +1,11 @@
+.command-dialog{width:min(660px,calc(100% - 28px));max-height:min(680px,calc(100% - 28px));overflow:hidden}
+.command-dialog>div{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;max-height:min(680px,calc(100vh - 28px))}
+.command-dialog header{padding:14px 16px 8px}
+.command-dialog input{margin:0 16px 10px;padding:11px 12px;border:1px solid #526477;border-radius:5px;background:#0d131a;color:#eef5fa;font-size:1rem}
+.command-results{display:grid;gap:3px;overflow:auto;padding:4px 10px 10px}
+.command-results button{display:grid;grid-template-columns:90px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:9px 10px;border:1px solid transparent;border-radius:5px;background:#202935;color:#e7eef5;text-align:left}
+.command-results button:hover,.command-results button:focus{border-color:#39afe3;background:#19425a;outline:0}
+.command-results button:disabled{cursor:not-allowed;opacity:.45}
+.command-results span{color:#8fa5b8;font-size:.68rem;text-transform:uppercase}
+.command-results kbd{padding:3px 6px;border:1px solid #526477;border-radius:4px;background:#111820;color:#b9c9d8;font:11px Consolas,monospace}
+.command-dialog footer{padding:8px 16px 12px;color:#8fa5b8}

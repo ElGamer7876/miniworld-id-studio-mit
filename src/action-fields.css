@@ -23,7 +23,8 @@
   line-height: 1.2;
 }
 
-.inline-param input {
+.inline-param input,
+.inline-param select {
   width: 100%;
   min-height: 31px;
   padding: 5px 8px;
@@ -33,6 +34,10 @@
   color: #112536;
   font: 12px Consolas, monospace;
 }
+
+.inline-param select { font-family: system-ui, sans-serif; }
+.inline-param .custom-param { margin-top: 3px; }
+.inline-param .custom-param[hidden] { display: none; }
 
 .action-result {
   display: grid;

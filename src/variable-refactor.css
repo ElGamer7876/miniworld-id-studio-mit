@@ -1,0 +1,2 @@
+.variable-row{grid-template-columns:minmax(92px,1fr) 68px 78px minmax(78px,1fr) 28px}
+.variable-row [data-variable-scope]{color:#b7dcff;background:#172c3d}

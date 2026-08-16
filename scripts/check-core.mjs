@@ -1,14 +1,28 @@
 import {
   createAction,
+  cloneTrigger,
+  cloneAction,
+  analyzeProjectMetrics,
   createProject,
   createTrigger,
+  createVariable,
   generateLua,
+  inspectProject,
+  organizeMethodKeys,
+  searchProject,
   scanLua,
   validateProject,
   importLua,
   parseProject,
+  renameVariableReferences,
+  replaceLuaIdentifier,
 } from '../src/studio-core.ts';
 import { METHODS, describeMethodCall, methodByKey, methodDefaultValue, splitLuaArguments } from '../src/catalog.ts';
+import {filterStudioCommands} from '../src/command-palette.ts';
+import {normalizePanelLayout,togglePanelLayout} from '../src/panel-layout.ts';
+import {methodDefaultValueForContext,parameterPreset,valueSourceOptions} from '../src/parameter-options.ts';
+import {simulateTrigger} from '../src/simulator.ts';
+import {actionAtPath,appendActionInside,findActionPath,insertActionAfter,moveActionBefore,moveActionByOffset,moveActionToRootEnd,removeActionAtPath} from '../src/action-tree.ts';
 
 const project = createProject(1);
 project.triggers[0].actions.push(createAction('message'));
@@ -57,5 +71,56 @@ const beforeZoom=restored.triggers.map(({x,y})=>({x,y}));restored.settings.zoom=
 if(JSON.stringify(restored.triggers.map(({x,y})=>({x,y})))!==JSON.stringify(beforeZoom)){throw new Error('El zoom modifico las coordenadas de los activadores.');}
 if(restored.triggers.some((trigger)=>trigger.x!==143.25||trigger.y!==287.75)){throw new Error('La carga inicial no conservo las coordenadas modernas.');}
 if(parseProject(JSON.stringify(restored)).triggers.some((trigger)=>trigger.x!==143.25||trigger.y!==287.75)){throw new Error('El segundo inicio no conservo las coordenadas.');}
+
+const unhealthy=createProject(101);
+const duplicate=createTrigger(2);duplicate.functionName=unhealthy.triggers[0].functionName;duplicate.x=unhealthy.triggers[0].x;duplicate.y=unhealthy.triggers[0].y;
+const incomplete=createAction('api');incomplete.method='Player:openUIView';incomplete.value='e.eventobjid';unhealthy.triggers[0].actions.push(incomplete);unhealthy.triggers.push(duplicate);
+const issueCodes=new Set(inspectProject(unhealthy).map((issue)=>issue.code));
+for(const expected of ['api-arguments-missing','function-duplicate','trigger-overlap']){if(!issueCodes.has(expected))throw new Error(`El centro de problemas no detecto ${expected}.`);}
+const searchable=createProject(102),nested=createAction('if'),nestedMessage=createAction('message');nestedMessage.label='Tesoro secreto';nested.children.push(nestedMessage);searchable.triggers[0].actions.push(nested);searchable.triggers[0].variables.push({id:'var_search',name:'puntuacion',value:'0',valueType:'number',scope:'local'});
+if(searchProject(searchable,'tesoro')[0]?.actionId!==nestedMessage.id||!searchProject(searchable,'puntuacion').some(result=>result.kind==='variable'))throw new Error('La busqueda global no indexo bloques anidados o variables.');
+const cloned=cloneTrigger(searchable.triggers[0],2);if(cloned.id===searchable.triggers[0].id||cloned.actions[0].id===nested.id||cloned.actions[0].children[0].id===nestedMessage.id||cloned.functionName===searchable.triggers[0].functionName)throw new Error('La clonacion profunda reutilizo identificadores internos.');
+const metricProject=createProject(103),metricApi=createAction('api'),metricIf=createAction('if'),metricRaw=createAction('raw');metricApi.method='World:getPlayerTotal';metricIf.children.push(metricRaw);metricProject.triggers[0].actions.push(metricApi,metricIf);const metrics=analyzeProjectMetrics(metricProject);if(metrics.actions!==3||metrics.apiCalls!==1||metrics.rawBlocks!==1||metrics.maxDepth!==2||metrics.methods[0]?.name!=='World:getPlayerTotal')throw new Error('Las metricas estructurales no contaron acciones anidadas o API.');
+const organized=organizeMethodKeys(['A','B','C'],['B','B','X'],['B','C','C']);if(JSON.stringify(organized)!==JSON.stringify({favorites:['B'],recent:['C'],rest:['A']}))throw new Error('Favoritas y recientes duplicaron o conservaron API inexistentes.');
+const commands=filterStudioCommands([{id:'map',label:'Abrir mapa',group:'Vista'},{id:'metrics',label:'Métricas del proyecto',group:'Problemas',keywords:'analisis'}],'metricas');if(commands[0]?.id!=='metrics'||filterStudioCommands(commands,'',1).length!==1)throw new Error('La paleta de comandos no priorizó texto normalizado o respetó el límite.');
+const legacyPanels=normalizePanelLayout(),focusedPanels=togglePanelLayout(legacyPanels,'focus'),restoredPanels=togglePanelLayout(focusedPanels,'focus');if(!legacyPanels.projectPanelVisible||!legacyPanels.inspectorVisible||focusedPanels.projectPanelVisible||focusedPanels.inspectorVisible||!restoredPanels.projectPanelVisible||!restoredPanels.inspectorVisible)throw new Error('El diseño de paneles no migró o no restauró el modo enfoque.');
+
+const legacyEditorMode=JSON.parse(JSON.stringify(project));delete legacyEditorMode.settings.editorMode;
+if(parseProject(JSON.stringify(legacyEditorMode)).settings.editorMode!=='basic')throw new Error('Un proyecto anterior no migró al editor Básico.');
+const advancedEditorMode=JSON.parse(JSON.stringify(project));advancedEditorMode.settings.editorMode='advanced';
+if(parseProject(JSON.stringify(advancedEditorMode)).settings.editorMode!=='advanced')throw new Error('El proyecto no conservó el nivel Avanzado.');
+const lexical=replaceLuaIdentifier('-- contador\ncontador = contador + contador_extra\nprint("contador", contador)','contador','puntos');
+if(lexical.replacements!==3||!lexical.value.includes('-- contador')||!lexical.value.includes('"contador"')||!lexical.value.includes('contador_extra'))throw new Error('El renombrado Lua modificó comentarios, cadenas o identificadores parciales.');
+const refactor=createProject(104),variable=createVariable(),raw=createAction('raw'),nestedCondition=createAction('if');variable.name='contador';refactor.triggers[0].variables.push(variable);raw.value='contador = contador + 1';nestedCondition.condition='contador > 2';nestedCondition.value=nestedCondition.condition;nestedCondition.children.push(raw);refactor.triggers[0].conditions.push({id:'condition_refactor',field:'contador',operator:'==',value:'0'});refactor.triggers[0].actions.push(nestedCondition);
+const renamed=renameVariableReferences(refactor,refactor.triggers[0].id,variable.id,'puntos');
+if(!renamed.ok||renamed.references!==4||variable.name!=='puntos'||!generateLua(refactor).includes('puntos = puntos + 1')||generateLua(refactor).includes('local contador'))throw new Error('El renombrado seguro no actualizó todas las referencias del activador.');
+if(renameVariableReferences(refactor,refactor.triggers[0].id,variable.id,'2 puntos').ok||variable.name!=='puntos')throw new Error('El renombrado aceptó un identificador Lua inválido.');
+
+const playerAttrMethod=methodByKey('Player:setAttr'),playerPreset=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[0]),attributePreset=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[1]);
+if(!playerPreset?.options.some(option=>option.value==='e.eventobjid')||!playerPreset.allowCustom)throw new Error('El jugador no ofrece opciones y valor personalizado.');
+if(!attributePreset?.options.some(option=>option.value==='PLAYERATTR.CUR_HP')||!attributePreset.allowCustom)throw new Error('El atributo no ofrece constantes oficiales y valor personalizado.');
+if(methodDefaultValue(playerAttrMethod)!=='e.eventobjid, PLAYERATTR.CUR_HP, 100')throw new Error('El atributo predeterminado no usa la constante oficial.');
+if(parameterPreset(playerAttrMethod.key,playerAttrMethod.params[2]))throw new Error('Un valor numérico libre se convirtió en menú cerrado.');
+const contextualVariable=createVariable();contextualVariable.name='jugadorElegido';contextualVariable.valueType='number';
+const contextualPlayer=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[0],{eventFields:['eventobjid','x'],variables:[contextualVariable]});
+if(!contextualPlayer?.options.some(option=>option.value==='e.eventobjid')||contextualPlayer.options.some(option=>option.value==='e.toobjid')||!contextualPlayer.options.some(option=>option.value==='jugadorElegido'))throw new Error('Las opciones de jugador no respetan el evento y sus variables.');
+if(!valueSourceOptions({eventFields:['x'],variables:[contextualVariable]}).some(option=>option.value==='e.x'))throw new Error('No se sugieren los datos disponibles del evento.');
+if(methodDefaultValueForContext(playerAttrMethod,[])!=='nil, PLAYERATTR.CUR_HP, 100'||methodDefaultValueForContext(playerAttrMethod,['eventobjid'])!=='e.eventobjid, PLAYERATTR.CUR_HP, 100')throw new Error('Los valores iniciales no se adaptan al evento activo.');
+const musicMethod=methodByKey('Player:playMusic'),booleanPreset=parameterPreset(musicMethod.key,musicMethod.params.find(param=>param.key==='repetir'));
+if(JSON.stringify(booleanPreset?.options.map(option=>option.value))!==JSON.stringify(['true','false']))throw new Error('El booleano no ofrece las opciones Sí/No.');
+const simulated=createTrigger(1),simVariable=createVariable(),simRepeat=createAction('repeat'),simIncrement=createAction('set_variable'),simApi=createAction('api');simVariable.name='contador';simulated.variables.push(simVariable);simulated.conditions.push({id:'sim_condition',field:'e.level',operator:'>=',value:'2'});simRepeat.value='3';simIncrement.value='contador = contador + 1';simRepeat.children.push(simIncrement);simApi.method='Player:getNickname';simApi.value='e.eventobjid';simulated.actions.push(simRepeat,simApi);
+const simulation=simulateTrigger(simulated,{level:2,eventobjid:7});if(!simulation.passed||simulation.halted||simulation.variables.contador!==3||simulation.apiCalls!==1)throw new Error('El simulador no recorrió condiciones, variables, repeticiones y API.');
+if(simulateTrigger(simulated,{level:1,eventobjid:7}).passed)throw new Error('El simulador ejecutó un activador cuya condición inicial era falsa.');
+const limited=simulateTrigger(simulated,{level:2,eventobjid:7},{maxSteps:4});if(!limited.halted||!limited.steps.some(step=>step.label==='Prueba detenida'))throw new Error('El simulador no respetó el límite de pasos.');
+const treeIf=createAction('if'),treeA=createAction('message'),treeB=createAction('wait'),treeRoot=createAction('api');treeIf.children.push(treeA,treeB);const tree=[treeIf,treeRoot];
+if(actionAtPath(tree,'0.1')!==treeB||findActionPath(tree,treeA.id)!=='0.0')throw new Error('Las rutas anidadas no resolvieron acciones profundas.');
+if(!moveActionBefore(tree,'0.1','1')||tree[1]!==treeB||treeIf.children.length!==1)throw new Error('No se pudo sacar un bloque de un contenedor anidado.');
+if(!moveActionBefore(tree,'2','0.0')||treeIf.children[0]!==treeRoot)throw new Error('No se pudo mover un bloque principal dentro de una lista anidada.');
+if(moveActionBefore(tree,'0','0.0')||!moveActionByOffset(treeIf.children,'0',1)||treeIf.children[1]!==treeRoot)throw new Error('El árbol permitió ciclos o no reordenó hermanos.');
+const treeRootPath=findActionPath(tree,treeRoot.id);if(!treeRootPath||!moveActionToRootEnd(tree,treeRootPath)||tree.at(-1)!==treeRoot)throw new Error('No se pudo devolver una acción anidada al nivel principal.');
+const removablePath=findActionPath(tree,treeA.id);if(!removablePath||removeActionAtPath(tree,removablePath)!==treeA)throw new Error('No se pudo eliminar una acción mediante su ruta.');
+const clipboardSource=createAction('if'),clipboardChild=createAction('repeat'),clipboardLeaf=createAction('message');clipboardChild.children.push(clipboardLeaf);clipboardSource.children.push(clipboardChild);const clipboardCopy=cloneAction(clipboardSource);
+if(clipboardCopy.id===clipboardSource.id||clipboardCopy.children[0].id===clipboardChild.id||clipboardCopy.children[0].children[0].id===clipboardLeaf.id)throw new Error('La copia de un bloque reutilizó IDs internos.');
+const clipboardTree=[createAction('wait')];if(!insertActionAfter(clipboardTree,'0',clipboardCopy)||clipboardTree[1]!==clipboardCopy||!appendActionInside(clipboardTree,'1',cloneAction(clipboardLeaf))||clipboardTree[1].children.length!==2)throw new Error('Copiar y pegar no insertó el árbol en la posición solicitada.');
 
 console.log('Core MIT local: OK');

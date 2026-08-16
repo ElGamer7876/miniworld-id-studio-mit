@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 1.1.0-beta.1 — 2026-08-16
+
+- Añade selector persistente Español / English y una primera traducción de la interfaz del Studio.
+- En Básico e Intermedio, jugador, atributo, booleanos y estados usan opciones seguras; los valores libres continúan editables.
+- Las opciones y valores iniciales ahora dependen de los datos disponibles en el evento activo.
+- Añade sugerencias de datos del evento y variables sin convertir coordenadas, cantidades, IDs o texto en menús cerrados.
+- Incorpora simulación local, edición anidada completa, portapapeles de bloques, recuperación, búsqueda, comandos, métricas y preferencias de API desarrolladas durante el ciclo 1.0.
+
 ## 1.0.0-beta.2 — 2026-08-16
 
 - Conserva exactamente las coordenadas de cada activador al abrir un proyecto.

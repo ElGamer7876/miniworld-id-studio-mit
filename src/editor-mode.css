@@ -1,0 +1,5 @@
+.editor-mode-picker{border-bottom:1px solid #344252;background:#202935}
+.editor-mode-picker select{padding:7px;border:1px solid #526477;border-radius:4px;background:#101820;color:#eef5fa;font-weight:700}
+.action-block header>strong{min-width:0;padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.advanced-only{margin-top:7px;padding:10px;border:1px dashed #d8ad56;border-radius:5px;background:#332a18;color:#ffe2a3}
+.advanced-only p{margin:4px 0;font-size:.75rem}.advanced-only pre{max-height:110px;overflow:auto;white-space:pre-wrap;font:11px/1.4 Consolas,monospace}

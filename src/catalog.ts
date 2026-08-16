@@ -33,8 +33,8 @@ export const METHODS: MethodEntry[] = [
   method('Chat:sendChat', 'Enviar mensaje al chat', 'Chat', 'Enviar {contenido} al chat de {jugador}', [p('contenido', 'mensaje', 'string', '"Hola"'), { ...player(), optional: true }], []),
 
   method('Player:getNickname', 'Obtener nombre del jugador', 'Jugador', 'Obtener el nombre de {jugador}', [player()], ['code', 'nombre']),
-  method('Player:setAttr', 'Cambiar atributo del jugador', 'Jugador', 'Cambiar {atributo} de {jugador} a {valor}', [player(), p('atributo', 'atributo', 'expression', 'PlayerAttr.CUR_HP'), p('valor', 'valor', 'number', '100')]),
-  method('Player:getAttr', 'Obtener atributo del jugador', 'Jugador', 'Obtener {atributo} de {jugador}', [player(), p('atributo', 'atributo', 'expression', 'PlayerAttr.CUR_HP')], ['code', 'valor']),
+  method('Player:setAttr', 'Cambiar atributo del jugador', 'Jugador', 'Cambiar {atributo} de {jugador} a {valor}', [player(), p('atributo', 'atributo', 'expression', 'PLAYERATTR.CUR_HP'), p('valor', 'valor', 'number', '100')]),
+  method('Player:getAttr', 'Obtener atributo del jugador', 'Jugador', 'Obtener {atributo} de {jugador}', [player(), p('atributo', 'atributo', 'expression', 'PLAYERATTR.CUR_HP')], ['code', 'valor']),
   method('Player:gainItems', 'Entregar objetos', 'Jugador', 'Entregar {cantidad} del objeto {itemid} a {jugador}', [player(), p('itemid', 'ID de objeto', 'id', '1001'), p('cantidad', 'cantidad', 'number', '1'), p('prioridad', 'prioridad', 'number', '1', true)]),
   method('Player:setPosition', 'Mover jugador', 'Jugador', 'Mover {jugador} a X {x}, Y {y}, Z {z}', [player(), p('x', 'X', 'number', 'e.x'), p('y', 'Y', 'number', 'e.y'), p('z', 'Z', 'number', 'e.z')]),
   method('Player:setGameWin', 'Marcar victoria', 'Jugador', 'Dar la victoria a {jugador}', [player()]),
