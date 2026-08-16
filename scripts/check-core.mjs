@@ -50,4 +50,12 @@ const legacy=JSON.parse(JSON.stringify(project));delete legacy.layoutVersion;leg
 const repaired=parseProject(JSON.stringify(legacy));
 if(repaired.triggers.some((trigger)=>trigger.x===0&&trigger.y===0)||new Set(repaired.triggers.map((trigger)=>`${trigger.x}:${trigger.y}`)).size!==2){throw new Error('La reparacion de coordenadas antiguas fallo.');}
 
+const modern=JSON.parse(JSON.stringify(project));modern.layoutVersion=1;modern.triggers=[createTrigger(1),createTrigger(2)];
+modern.triggers[0].x=143.25;modern.triggers[0].y=287.75;modern.triggers[1].x=143.25;modern.triggers[1].y=287.75;modern.settings.zoom=1.6;
+const restored=parseProject(JSON.stringify(modern));
+const beforeZoom=restored.triggers.map(({x,y})=>({x,y}));restored.settings.zoom=.7;
+if(JSON.stringify(restored.triggers.map(({x,y})=>({x,y})))!==JSON.stringify(beforeZoom)){throw new Error('El zoom modifico las coordenadas de los activadores.');}
+if(restored.triggers.some((trigger)=>trigger.x!==143.25||trigger.y!==287.75)){throw new Error('La carga inicial no conservo las coordenadas modernas.');}
+if(parseProject(JSON.stringify(restored)).triggers.some((trigger)=>trigger.x!==143.25||trigger.y!==287.75)){throw new Error('El segundo inicio no conservo las coordenadas.');}
+
 console.log('Core MIT local: OK');

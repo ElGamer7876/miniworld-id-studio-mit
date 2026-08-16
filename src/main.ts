@@ -43,11 +43,11 @@ async function saveAll(): Promise<void> {
   await persistProjects(projects); status('Guardado local');
 }
 
-function commit(previous: string, message = 'Cambio guardado'): void {
+function commit(previous: string, message = 'Cambio guardado', shouldRender = true): void {
   if (previous !== snap()) { history.push(previous); history = history.slice(-150); future = []; }
   project.updatedAt = new Date().toISOString();
   window.clearTimeout(saveTimer); saveTimer = window.setTimeout(() => void saveAll(), 220);
-  render(); status(message);
+  if (shouldRender) render(); status(message);
 }
 
 function switchView(view: StudioProject['activeView']): void { project.activeView = view; render(); void saveAll(); }
@@ -75,7 +75,15 @@ function renderMap(host: HTMLElement): void {
   host.innerHTML = `<div class="workspace-tools"><button data-zoom-out>−</button><strong>${Math.round(zoom * 100)}%</strong><button data-zoom-in>+</button><button data-fit>Encajar</button><label class="check"><input data-free-move type="checkbox" ${project.settings.freeMapMovement ? 'checked' : ''}> Mover mapa</label><label class="check"><input data-move-triggers type="checkbox" ${project.settings.moveTriggers ? 'checked' : ''}> Mover activadores</label><span>Arrastra el fondo o la cabecera azul del activador.</span></div><div class="map-viewport ${project.settings.grid ? '' : 'no-grid'}" data-map><div class="map-world" data-map-world style="transform:translate(${project.settings.mapX}px,${project.settings.mapY}px) scale(${zoom})">${project.triggers.map((trigger) => { const actions = trigger.actions.slice(0, 6).map((action) => `<span class="flow-block ${action.type}">${html(action.label)}</span>`).join('') || '<span class="flow-block empty">Sin acciones</span>'; const preview = project.settings.showCodeOnMap ? `<pre>${html(generateLua({ ...project, preamble: '', triggers: [trigger] }).split('\n').slice(2, 11).join('\n'))}</pre>` : ''; return `<article class="trigger-card ${trigger.id === activeTriggerId ? 'active' : ''} ${trigger.enabled ? '' : 'disabled'}" data-map-trigger="${trigger.id}" style="left:${trigger.x}px;top:${trigger.y}px"><button class="event-block">${html(trigger.name)}<small>${html(eventById(trigger.event)?.name || trigger.event)}</small></button><div class="trigger-flow">${actions}${preview}</div></article>`; }).join('')}</div></div>`;
   const map = host.querySelector<HTMLElement>('[data-map]'), world = host.querySelector<HTMLElement>('[data-map-world]'); if (!map || !world) return;
   const applyTransform = (): void => { world.style.transform = `translate(${project.settings.mapX}px,${project.settings.mapY}px) scale(${project.settings.zoom})`; };
-  map.onwheel = (event) => { event.preventDefault(); const before = snap(); project.settings.zoom = Math.min(1.8, Math.max(.45, project.settings.zoom + (event.deltaY < 0 ? .1 : -.1))); applyTransform(); commit(before, 'Zoom actualizado'); };
+  const updateZoom = (nextZoom: number): void => {
+    const before = snap();
+    project.settings.zoom = Math.min(1.8, Math.max(.45, nextZoom));
+    applyTransform();
+    const zoomLabel = host.querySelector<HTMLElement>('.workspace-tools strong');
+    if (zoomLabel) zoomLabel.textContent = `${Math.round(project.settings.zoom * 100)}%`;
+    commit(before, 'Zoom actualizado', false);
+  };
+  map.onwheel = (event) => { event.preventDefault(); updateZoom(project.settings.zoom + (event.deltaY < 0 ? .1 : -.1)); };
   let mapPointerId: number | null = null, mapBefore = '', mapLastX = 0, mapLastY = 0, mapOriginX = 0, mapOriginY = 0, mapDragBounds: DOMRect | null = null;
   map.onpointerdown = (event) => {
     if (!project.settings.freeMapMovement || (event.target as Element).closest('[data-map-trigger]') || (event.pointerType === 'mouse' && event.button !== 0)) return;
@@ -152,8 +160,8 @@ function renderMap(host: HTMLElement): void {
       status(`Activador guardado en X ${Math.round(trigger.x)}, Y ${Math.round(trigger.y)}`);
     };
   });
-  host.querySelector<HTMLButtonElement>('[data-zoom-in]')!.onclick = () => { const before = snap(); project.settings.zoom = Math.min(1.8, project.settings.zoom + .1); commit(before); };
-  host.querySelector<HTMLButtonElement>('[data-zoom-out]')!.onclick = () => { const before = snap(); project.settings.zoom = Math.max(.45, project.settings.zoom - .1); commit(before); };
+  host.querySelector<HTMLButtonElement>('[data-zoom-in]')!.onclick = () => updateZoom(project.settings.zoom + .1);
+  host.querySelector<HTMLButtonElement>('[data-zoom-out]')!.onclick = () => updateZoom(project.settings.zoom - .1);
   host.querySelector<HTMLButtonElement>('[data-fit]')!.onclick = () => { const before = snap(); project.settings.zoom = 1; project.settings.mapX = 0; project.settings.mapY = 0; commit(before, 'Mapa centrado'); };
   host.querySelector<HTMLInputElement>('[data-free-move]')!.onchange = (event) => { const before = snap(); project.settings.freeMapMovement = (event.currentTarget as HTMLInputElement).checked; commit(before); };
   host.querySelector<HTMLInputElement>('[data-move-triggers]')!.onchange = (event) => { const before = snap(); project.settings.moveTriggers = (event.currentTarget as HTMLInputElement).checked; commit(before); };
