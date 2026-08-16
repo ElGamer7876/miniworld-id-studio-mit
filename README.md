@@ -8,9 +8,9 @@ Editor Tauri 2 completamente local para construir activadores y exportar Lua.
 Esta edición está preparada para publicarse como repositorio independiente en
 GitHub bajo la licencia MIT.
 
-Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.0.0-beta.1` es un prerelease de evaluación y no reemplaza Stable 0.3.1. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
+Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.0.0-beta.2` es un prerelease de evaluación y no reemplaza Stable 0.3.2. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
 
-El release `0.3.1` ofrece instalador y portable para Windows x64 de dos
+El release `0.3.2` ofrece instalador y portable para Windows x64 de dos
 ediciones. El código fuente de este repositorio corresponde únicamente a la
 edición MIT local:
 
@@ -23,7 +23,13 @@ Incluye el mismo mapa con movimiento, editor de bloques, condiciones,
 variables, catálogo Mini World, conversión Lua, proyectos múltiples,
 deshacer/rehacer y análisis estático que la edición conectada.
 
-## Novedades de 1.0.0 Beta 1
+## Novedades de 1.0.0 Beta 2
+
+- Corrige el salto de varios activadores a `0,0` al usar zoom.
+- Conserva las coordenadas exactas después de cerrar y volver a abrir Studio.
+- Añade pruebas de persistencia con dos activadores y posiciones superpuestas.
+
+## Incluido desde Beta 1
 
 - Vista de mapas locales con escaneo iniciado únicamente por el usuario.
 - Compatibilidad con `miniworddata410`, `miniworddata402`, `miniworddata1` y

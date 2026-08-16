@@ -2,6 +2,7 @@ import { AUTHOR_LINE } from './edition.ts';
 import { methodByKey, methodDefaultValue } from './catalog.ts';
 export { AUTHOR_LINE } from './edition.ts';
 export const MAX_PROJECT_BYTES = 2_621_440;
+export const PROJECT_LAYOUT_VERSION = 2;
 
 export type ActionType = 'message' | 'wait' | 'api' | 'raw' | 'if' | 'repeat' | 'set_variable';
 export type StudioAction = { id: string; type: ActionType; label: string; value: string; method?: string; targets?: string; condition?: string; children?: StudioAction[] };
@@ -20,7 +21,7 @@ const settings = (): StudioSettings => ({ keepTabOnAdd: false, showCodeOnMap: tr
 
 export function createProject(projectId = 1): StudioProject {
   const now = new Date().toISOString();
-  return { format: 'miniworld-id-studio', version: 2, layoutVersion: 1, id: projectId, title: 'Mi proyecto de Mini World', description: '', preamble: '', createdAt: now, updatedAt: now, activeView: 'map', settings: settings(), triggers: [createTrigger(1)] };
+  return { format: 'miniworld-id-studio', version: 2, layoutVersion: PROJECT_LAYOUT_VERSION, id: projectId, title: 'Mi proyecto de Mini World', description: '', preamble: '', createdAt: now, updatedAt: now, activeView: 'map', settings: settings(), triggers: [createTrigger(1)] };
 }
 
 export function createTrigger(index: number): StudioTrigger {
@@ -92,9 +93,18 @@ export function parseProject(text: string): StudioProject {
   if (input.format !== 'miniworld-id-studio' || !Array.isArray(input.triggers)) throw new Error('Proyecto no compatible.');
   const base = createProject(Math.max(1, Number(input.id) || 1));
   const legacyLayout=Number(input.layoutVersion||0)<1;
-  const triggers=input.triggers.map(normalizeTrigger);if(legacyLayout)triggers.forEach((trigger,index)=>{if(trigger.x===0&&trigger.y===0){const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;}});
-  const occupied=new Set<string>();triggers.forEach((trigger,index)=>{const key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;if(occupied.has(key)){const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;}occupied.add(`${Math.round(trigger.x)}:${Math.round(trigger.y)}`);});
-  return { ...base, ...input, version: 2, layoutVersion: 1, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'config', 'localmaps'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}) }, triggers };
+  const triggers=input.triggers.map(normalizeTrigger);
+  if(legacyLayout){
+    const occupied=new Set<string>();
+    triggers.forEach((trigger,index)=>{
+      let key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;
+      if((trigger.x===0&&trigger.y===0)||occupied.has(key)){
+        const repaired=createTrigger(index+1);trigger.x=repaired.x;trigger.y=repaired.y;key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;
+      }
+      occupied.add(key);
+    });
+  }
+  return { ...base, ...input, version: 2, layoutVersion: PROJECT_LAYOUT_VERSION, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'config', 'localmaps'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}) }, triggers };
 }
 
 export function importLua(source: string, projectId: number): StudioProject {

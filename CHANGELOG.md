@@ -1,5 +1,18 @@
 # Historial de cambios
 
+## 1.0.0-beta.2 — 2026-08-16
+
+- Conserva exactamente las coordenadas de cada activador al abrir un proyecto.
+- El zoom ya no reconstruye el mapa ni desplaza tarjetas a `0,0`.
+- Respeta posiciones superpuestas elegidas por el usuario en proyectos modernos.
+- Migra una sola vez los proyectos antiguos dañados sin alterar los nuevos.
+- Incluye pruebas de dos activadores, zoom y doble reinicio.
+
+## 0.3.2 — 2026-08-16
+
+- Lleva la misma corrección de coordenadas y zoom al canal Stable.
+- Mantiene 0.3.1 disponible como versión anterior.
+
 ## 1.0.0-beta.1 — 2026-08-15
 
 - Añade un índice manual y de solo lectura para mapas locales de Mini World.
