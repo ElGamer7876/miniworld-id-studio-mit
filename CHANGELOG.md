@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 1.1.0-beta.2 — 2026-08-16
+
+- Completa la localización funcional Español / English en todas las vistas principales.
+- Traduce nombres y frases de todas las acciones API, eventos, parámetros y atributos seleccionables.
+- Traduce diagnósticos, análisis Lua, mapas locales, configuración y recuperación asíncrona.
+- Mantiene intactos el código Lua, IDs técnicos, títulos, nombres de activadores y valores escritos por el usuario.
+- Añade pruebas automáticas de cobertura del catálogo y de traducciones dinámicas seguras.
+
 ## 1.1.0-beta.1 — 2026-08-16
 
 - Añade selector persistente Español / English y una primera traducción de la interfaz del Studio.
