@@ -10,7 +10,7 @@ Editor Tauri 2 completamente local para construir activadores y exportar Lua.
 Esta edición está preparada para publicarse como repositorio independiente en
 GitHub bajo la licencia MIT.
 
-Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.1.0-beta.2` completa la localización funcional del ciclo bilingüe y no reemplaza una versión estable. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
+Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.1.0-beta.3` añade respaldo completo, autoguardado recuperable y una guía bilingüe de atajos; no reemplaza una versión estable. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
 
 La interfaz incluye un selector persistente **Español / English**. El Studio traduce navegación, editor, catálogo API, eventos, diagnósticos, mapas locales y configuración, pero conserva sin cambios el código Lua, los nombres técnicos de API y el contenido escrito por el usuario.
 
@@ -83,6 +83,14 @@ activador. El resumen copiable no contiene el código Lua.
 El catálogo de API permite marcar métodos favoritos y mantiene una lista de
 llamadas recientes. Estas preferencias son locales, no forman parte del
 proyecto y no generan conexiones de red.
+
+## Novedades de 1.1.0 Beta 3
+
+- Respaldo local de todos los proyectos, preferencias y plantillas en un solo archivo validado de hasta 16 MB.
+- Restauración no destructiva: remapea IDs en conflicto y nunca sustituye proyectos actuales.
+- Autoguardado serializado con estados Guardando/Guardado, error persistente y botón de reintento.
+- Guía accesible de atajos mediante el botón Atajos, `Ctrl+/` o la paleta de comandos.
+- Los atajos globales se ignoran mientras el usuario escribe en campos de texto.
 
 ## Novedades de 1.0.0 Beta 2
 

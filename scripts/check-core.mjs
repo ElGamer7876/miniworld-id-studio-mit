@@ -23,6 +23,7 @@ import {normalizePanelLayout,togglePanelLayout} from '../src/panel-layout.ts';
 import {methodDefaultValueForContext,parameterPreset,valueSourceOptions} from '../src/parameter-options.ts';
 import {simulateTrigger} from '../src/simulator.ts';
 import {translateText} from '../src/i18n.ts';
+import {createWorkspaceBackup,mergeWorkspaceProjects,parseWorkspaceBackup} from '../src/workspace-backup.ts';
 import {actionAtPath,appendActionInside,findActionPath,insertActionAfter,moveActionBefore,moveActionByOffset,moveActionToRootEnd,removeActionAtPath} from '../src/action-tree.ts';
 
 const project = createProject(1);
@@ -129,5 +130,9 @@ if(translateText('Proyecto #12 · 3 activador(es)','en')!=='Project #12 · 3 tri
 if(translateText('Mapa épico del usuario','en')!=='Mapa épico del usuario')throw new Error('La traducción modificó contenido libre del usuario.');
 if(translateText('Problemas del proyecto','en')!=='Project issues'||translateText('Mantener la pestaña al añadir un activador','en')!=='Keep the tab open after adding a trigger')throw new Error('Faltan traducciones inglesas de vistas completas.');
 if(translateText('Activador del usuario: está habilitado pero no contiene acciones.','en')!=='Activador del usuario: is enabled but contains no actions.')throw new Error('La traducción dinámica de diagnósticos no preserva el nombre del activador.');
+const backup=createWorkspaceBackup([project],{favoriteMethods:['Chat:sendChat'],recentMethods:[],projectPanelVisible:true,inspectorVisible:false,locale:'en'},[]),parsedBackup=parseWorkspaceBackup(JSON.stringify(backup));
+if(parsedBackup.projects.length!==1||parsedBackup.preferences.locale!=='en'||parsedBackup.preferences.inspectorVisible!==false)throw new Error('El respaldo no conservó proyectos o preferencias.');
+const backupMerge=mergeWorkspaceProjects([project],parsedBackup.projects);if(backupMerge.projects.length!==2||backupMerge.imported[0].id===project.id||backupMerge.projects[1].id!==project.id)throw new Error('Restaurar un respaldo reemplazó o colisionó con un proyecto actual.');
+let invalidBackupAccepted=false;try{parseWorkspaceBackup('{"format":"incorrecto","version":1,"projects":[]}');invalidBackupAccepted=true}catch{}if(invalidBackupAccepted)throw new Error('Se aceptó un respaldo con formato inválido.');
 
 console.log('Core MIT local: OK');

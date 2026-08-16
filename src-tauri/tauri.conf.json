@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Mini World ID Studio MIT",
-  "version": "1.1.0-2",
+  "version": "1.1.0-3",
   "identifier": "id.miniworld.studio.mit",
   "build": {
     "beforeDevCommand": "npm run dev",
