@@ -17,11 +17,12 @@ import {
   renameVariableReferences,
   replaceLuaIdentifier,
 } from '../src/studio-core.ts';
-import { METHODS, describeMethodCall, methodByKey, methodDefaultValue, splitLuaArguments } from '../src/catalog.ts';
+import { EVENTS, METHODS, describeMethodCall, methodByKey, methodDefaultValue, splitLuaArguments } from '../src/catalog.ts';
 import {filterStudioCommands} from '../src/command-palette.ts';
 import {normalizePanelLayout,togglePanelLayout} from '../src/panel-layout.ts';
 import {methodDefaultValueForContext,parameterPreset,valueSourceOptions} from '../src/parameter-options.ts';
 import {simulateTrigger} from '../src/simulator.ts';
+import {translateText} from '../src/i18n.ts';
 import {actionAtPath,appendActionInside,findActionPath,insertActionAfter,moveActionBefore,moveActionByOffset,moveActionToRootEnd,removeActionAtPath} from '../src/action-tree.ts';
 
 const project = createProject(1);
@@ -122,5 +123,11 @@ const removablePath=findActionPath(tree,treeA.id);if(!removablePath||removeActio
 const clipboardSource=createAction('if'),clipboardChild=createAction('repeat'),clipboardLeaf=createAction('message');clipboardChild.children.push(clipboardLeaf);clipboardSource.children.push(clipboardChild);const clipboardCopy=cloneAction(clipboardSource);
 if(clipboardCopy.id===clipboardSource.id||clipboardCopy.children[0].id===clipboardChild.id||clipboardCopy.children[0].children[0].id===clipboardLeaf.id)throw new Error('La copia de un bloque reutilizó IDs internos.');
 const clipboardTree=[createAction('wait')];if(!insertActionAfter(clipboardTree,'0',clipboardCopy)||clipboardTree[1]!==clipboardCopy||!appendActionInside(clipboardTree,'1',cloneAction(clipboardLeaf))||clipboardTree[1].children.length!==2)throw new Error('Copiar y pegar no insertó el árbol en la posición solicitada.');
+for(const method of METHODS){const name=translateText(method.name,'en'),phrase=translateText(method.phrase,'en');if(name===method.name||phrase===method.phrase)throw new Error(`Falta traducción inglesa de ${method.key}.`)}
+for(const event of EVENTS)if(translateText(event.name,'en')===event.name)throw new Error(`Falta traducción inglesa del evento ${event.id}.`);
+if(translateText('Proyecto #12 · 3 activador(es)','en')!=='Project #12 · 3 trigger(s)'||translateText('Project #12 · 3 trigger(s)','es')!=='Proyecto #12 · 3 activador(es)')throw new Error('Los textos dinámicos no cambian de idioma de forma reversible.');
+if(translateText('Mapa épico del usuario','en')!=='Mapa épico del usuario')throw new Error('La traducción modificó contenido libre del usuario.');
+if(translateText('Problemas del proyecto','en')!=='Project issues'||translateText('Mantener la pestaña al añadir un activador','en')!=='Keep the tab open after adding a trigger')throw new Error('Faltan traducciones inglesas de vistas completas.');
+if(translateText('Activador del usuario: está habilitado pero no contiene acciones.','en')!=='Activador del usuario: is enabled but contains no actions.')throw new Error('La traducción dinámica de diagnósticos no preserva el nombre del activador.');
 
 console.log('Core MIT local: OK');
