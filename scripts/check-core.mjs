@@ -23,6 +23,7 @@ import {normalizePanelLayout,togglePanelLayout} from '../src/panel-layout.ts';
 import {methodDefaultValueForContext,parameterPreset,valueSourceOptions} from '../src/parameter-options.ts';
 import {simulateTrigger} from '../src/simulator.ts';
 import {translateText} from '../src/i18n.ts';
+import {createWorkspaceBackup,mergeWorkspaceProjects,parseWorkspaceBackup} from '../src/workspace-backup.ts';
 import {actionAtPath,appendActionInside,findActionPath,insertActionAfter,moveActionBefore,moveActionByOffset,moveActionToRootEnd,removeActionAtPath} from '../src/action-tree.ts';
 
 const project = createProject(1);
@@ -105,6 +106,8 @@ if(parameterPreset(playerAttrMethod.key,playerAttrMethod.params[2]))throw new Er
 const contextualVariable=createVariable();contextualVariable.name='jugadorElegido';contextualVariable.valueType='number';
 const contextualPlayer=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[0],{eventFields:['eventobjid','x'],variables:[contextualVariable]});
 if(!contextualPlayer?.options.some(option=>option.value==='e.eventobjid')||contextualPlayer.options.some(option=>option.value==='e.toobjid')||!contextualPlayer.options.some(option=>option.value==='jugadorElegido'))throw new Error('Las opciones de jugador no respetan el evento y sus variables.');
+const prefixedPlayer=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[0],{eventFields:['e.eventobjid','e.toobjid'],variables:[]});
+if(!prefixedPlayer?.options.some(option=>option.value==='e.eventobjid')||!prefixedPlayer.options.some(option=>option.value==='e.toobjid')||methodDefaultValueForContext(playerAttrMethod,['e.eventobjid'])!=='e.eventobjid, PLAYERATTR.CUR_HP, 100')throw new Error('El jugador volvió a nil al recibir campos de evento con prefijo e.');
 if(!valueSourceOptions({eventFields:['x'],variables:[contextualVariable]}).some(option=>option.value==='e.x'))throw new Error('No se sugieren los datos disponibles del evento.');
 if(methodDefaultValueForContext(playerAttrMethod,[])!=='nil, PLAYERATTR.CUR_HP, 100'||methodDefaultValueForContext(playerAttrMethod,['eventobjid'])!=='e.eventobjid, PLAYERATTR.CUR_HP, 100')throw new Error('Los valores iniciales no se adaptan al evento activo.');
 const musicMethod=methodByKey('Player:playMusic'),booleanPreset=parameterPreset(musicMethod.key,musicMethod.params.find(param=>param.key==='repetir'));
@@ -129,5 +132,9 @@ if(translateText('Proyecto #12 · 3 activador(es)','en')!=='Project #12 · 3 tri
 if(translateText('Mapa épico del usuario','en')!=='Mapa épico del usuario')throw new Error('La traducción modificó contenido libre del usuario.');
 if(translateText('Problemas del proyecto','en')!=='Project issues'||translateText('Mantener la pestaña al añadir un activador','en')!=='Keep the tab open after adding a trigger')throw new Error('Faltan traducciones inglesas de vistas completas.');
 if(translateText('Activador del usuario: está habilitado pero no contiene acciones.','en')!=='Activador del usuario: is enabled but contains no actions.')throw new Error('La traducción dinámica de diagnósticos no preserva el nombre del activador.');
+const backup=createWorkspaceBackup([project],{favoriteMethods:['Chat:sendChat'],recentMethods:[],projectPanelVisible:true,inspectorVisible:false,locale:'en'},[]),parsedBackup=parseWorkspaceBackup(JSON.stringify(backup));
+if(parsedBackup.projects.length!==1||parsedBackup.preferences.locale!=='en'||parsedBackup.preferences.inspectorVisible!==false)throw new Error('El respaldo no conservó proyectos o preferencias.');
+const backupMerge=mergeWorkspaceProjects([project],parsedBackup.projects);if(backupMerge.projects.length!==2||backupMerge.imported[0].id===project.id||backupMerge.projects[1].id!==project.id)throw new Error('Restaurar un respaldo reemplazó o colisionó con un proyecto actual.');
+let invalidBackupAccepted=false;try{parseWorkspaceBackup('{"format":"incorrecto","version":1,"projects":[]}');invalidBackupAccepted=true}catch{}if(invalidBackupAccepted)throw new Error('Se aceptó un respaldo con formato inválido.');
 
 console.log('Core MIT local: OK');
