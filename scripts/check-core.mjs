@@ -106,6 +106,8 @@ if(parameterPreset(playerAttrMethod.key,playerAttrMethod.params[2]))throw new Er
 const contextualVariable=createVariable();contextualVariable.name='jugadorElegido';contextualVariable.valueType='number';
 const contextualPlayer=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[0],{eventFields:['eventobjid','x'],variables:[contextualVariable]});
 if(!contextualPlayer?.options.some(option=>option.value==='e.eventobjid')||contextualPlayer.options.some(option=>option.value==='e.toobjid')||!contextualPlayer.options.some(option=>option.value==='jugadorElegido'))throw new Error('Las opciones de jugador no respetan el evento y sus variables.');
+const prefixedPlayer=parameterPreset(playerAttrMethod.key,playerAttrMethod.params[0],{eventFields:['e.eventobjid','e.toobjid'],variables:[]});
+if(!prefixedPlayer?.options.some(option=>option.value==='e.eventobjid')||!prefixedPlayer.options.some(option=>option.value==='e.toobjid')||methodDefaultValueForContext(playerAttrMethod,['e.eventobjid'])!=='e.eventobjid, PLAYERATTR.CUR_HP, 100')throw new Error('El jugador volvió a nil al recibir campos de evento con prefijo e.');
 if(!valueSourceOptions({eventFields:['x'],variables:[contextualVariable]}).some(option=>option.value==='e.x'))throw new Error('No se sugieren los datos disponibles del evento.');
 if(methodDefaultValueForContext(playerAttrMethod,[])!=='nil, PLAYERATTR.CUR_HP, 100'||methodDefaultValueForContext(playerAttrMethod,['eventobjid'])!=='e.eventobjid, PLAYERATTR.CUR_HP, 100')throw new Error('Los valores iniciales no se adaptan al evento activo.');
 const musicMethod=methodByKey('Player:playMusic'),booleanPreset=parameterPreset(musicMethod.key,musicMethod.params.find(param=>param.key==='repetir'));

@@ -9,7 +9,7 @@
 Mini World ID Studio is a Tauri 2 desktop editor for building Mini World triggers and exporting Lua locally. This repository contains the offline MIT edition; it does not require a Mini World ID account and does not send projects or map data over the network.
 
 The interface provides a persistent **Español / English** selector. Navigation, the editor, API catalog, events, diagnostics, local maps, and settings are localized while Lua code, API identifiers, project content, IDs, and user-entered values remain unchanged. Version `1.1.0-beta.2` completes this functional bilingual pass.
-Version `1.1.0-beta.3` adds a validated full-workspace backup, recoverable serialized autosave, and an accessible bilingual keyboard-shortcut guide.
+Version `1.1.0-beta.4` fixes player references in triggers whose event fields are provided with the `e.` prefix.
 
 ## New in 1.1.0 Beta 3
 

@@ -1,5 +1,10 @@
 # Historial de cambios
 
+## 1.1.0-beta.4 — 2026-08-19
+
+- Corrige el selector y valor inicial de jugador cuando el evento entrega campos con el prefijo `e.`.
+- Evita que un jugador válido se degrade a `nil` al crear o editar una acción API.
+
 ## 1.1.0-beta.3 — 2026-08-16
 
 - Añade respaldo completo y validado de proyectos, preferencias y plantillas locales.
