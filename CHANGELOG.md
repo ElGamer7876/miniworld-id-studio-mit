@@ -2,6 +2,7 @@
 
 ## 2.0.0 — 2026-09-08
 
+- Mantiene visibles las referencias de jugador en Básico e Intermedio aunque el evento activo no las proporcione, señalándolas claramente en lugar de reducir el selector a `nil`.
 - Añade el Centro de datos del juego, local, voluntario y de solo lectura.
 - Detecta nombres de API, eventos e IDs de archivos de texto sin almacenar cuerpos Lua ni rutas absolutas.
 - Compara símbolos observados con el catálogo revisado del Studio y marca los desconocidos para revisión.
