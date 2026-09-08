@@ -1,4 +1,4 @@
-# Mini World ID Studio 1.1.0 Beta — MIT Local
+# Mini World ID Studio 2.0.0 — MIT Local
 
 [English documentation](README.en.md) · **Documentación en español**
 
@@ -10,7 +10,16 @@ Editor Tauri 2 completamente local para construir activadores y exportar Lua.
 Esta edición está preparada para publicarse como repositorio independiente en
 GitHub bajo la licencia MIT.
 
-Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.1.0-beta.4` corrige las referencias de jugador en activadores que entregan sus campos con el prefijo `e.`; no reemplaza una versión estable. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
+Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `2.0.0` incorpora un centro local de datos del juego con límites estrictos y separación limpia respecto a recursos de terceros. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
+
+## Nuevo en 2.0.0
+
+- Analiza voluntariamente una carpeta local elegida por el usuario.
+- Observa nombres de API, eventos e IDs sin conservar cuerpos de código.
+- Compara lo observado con el catálogo integrado y separa lo conocido de lo pendiente de revisión.
+- Limita cada análisis a 25.000 archivos, 4 MB por archivo y 64 MB leídos; omite enlaces simbólicos y binarios.
+- Genera un informe seguro con rutas relativas, conteos, procedencia y confianza, nunca con la ruta absoluta.
+- No incluye ni lee DLL, ejecutables, paquetes, mapas, audios, imágenes, modelos o credenciales.
 
 La interfaz incluye un selector persistente **Español / English**. El Studio traduce navegación, editor, catálogo API, eventos, diagnósticos, mapas locales y configuración, pero conserva sin cambios el código Lua, los nombres técnicos de API y el contenido escrito por el usuario.
 

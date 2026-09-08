@@ -4,6 +4,7 @@ import './shortcuts.css';
 import './pointer-fix.css';
 import './action-fields.css';
 import './local-maps.css';
+import './game-data.css';
 import './diagnostics.css';
 import './recovery.css';
 import './search.css';
@@ -23,6 +24,7 @@ import { analyzeProjectMetrics, cloneAction, cloneTrigger, createAction, createC
 import { clearRecoveryPoints, createRecoveryPoint, exportLua, exportProject, exportWorkspaceBackup, importProject, importWorkspaceBackup, listProjects, listRecoveryPoints, listTriggerTemplates, loadStudioPreferences, mergeWorkspaceTemplates, persistProjects, persistStudioPreferences, removeTriggerTemplate, saveTriggerTemplate, type StudioPreferences } from './persistence';
 import { mergeWorkspaceProjects } from './workspace-backup';
 import { scanLocalMaps, type LocalMapScan } from './local-maps';
+import { catalogCompatibility, chooseAndScanGameData, filterGameData, safeCatalogReport, type GameDataScan } from './game-data';
 import { filterStudioCommands, type StudioCommand } from './command-palette';
 import { togglePanelLayout, type PanelTarget } from './panel-layout';
 import { IS_TAURI_RUNTIME } from './platform-storage';
@@ -40,6 +42,7 @@ let actionClipboard:StudioAction|null=null;
 let history: string[] = [], future: string[] = [], saveTimer = 0, draggedAction = '', mapDragging = false;
 let saveQueue:Promise<boolean>=Promise.resolve(true);
 let localMapScan:LocalMapScan|null=null;
+let gameDataScan:GameDataScan|null=null;
 let studioPreferences:StudioPreferences={favoriteMethods:[],recentMethods:[],projectPanelVisible:true,inspectorVisible:true,locale:'es'};
 
 app.innerHTML = `
@@ -48,7 +51,7 @@ app.innerHTML = `
     <span class="separator"></span><button data-new>Nuevo</button><button data-import-project>Abrir</button><button data-save-file>Guardar</button><button data-export-lua>Exportar Lua</button>
     <span class="separator"></span><button data-undo>Deshacer</button><button data-redo>Rehacer</button><button data-search title="Buscar en el proyecto (Ctrl+K)">Buscar</button><button data-commands title="Paleta de comandos (Ctrl+Shift+P)">Comandos</button>${HAS_NETWORK ? '<button data-api>Comprobar API</button>' : ''}<span class="separator"></span><button class="panel-toggle" data-toggle-project-panel title="Mostrar u ocultar Proyectos (Ctrl+B)">Proyectos</button><button class="panel-toggle" data-toggle-inspector title="Mostrar u ocultar Inspector (Ctrl+Alt+I)">Inspector</button><span data-status data-save-state="idle">Local</span><button class="retry-save" data-retry-save hidden>Reintentar guardado</button>
   </header>
-  <nav class="view-tabs" aria-label="Vistas del proyecto"><button data-view-tab="map">Mapa</button><button data-view-tab="editor">Editor</button><button data-view-tab="lua">Lua</button><button data-view-tab="diagnostics">Problemas</button><button data-view-tab="localmaps">Mapas locales</button><button data-view-tab="config">Configuración</button></nav>
+  <nav class="view-tabs" aria-label="Vistas del proyecto"><button data-view-tab="map">Mapa</button><button data-view-tab="editor">Editor</button><button data-view-tab="lua">Lua</button><button data-view-tab="diagnostics">Problemas</button><button data-view-tab="localmaps">Mapas locales</button><button data-view-tab="gamedata">Datos del juego</button><button data-view-tab="config">Configuración</button></nav>
   <main class="studio-shell">
     <aside class="project-panel"><div class="panel-title"><strong>Proyectos</strong><button data-add-project title="Nuevo proyecto">+</button></div><div data-projects class="project-list"></div><div class="project-commands"><button data-duplicate-project>Duplicar</button><button data-delete-project>Eliminar</button></div><div class="panel-title"><strong>Activadores</strong><button data-add-trigger title="Nuevo activador">+</button></div><div data-triggers class="trigger-list"></div></aside>
     <section class="workspace"><div data-workspace class="workspace-content"></div></section>
@@ -340,6 +343,25 @@ function renderWorkspaceBackupSection(host:HTMLElement):void{
   applyTranslations(section,studioPreferences.locale);
 }
 
+async function renderGameData(host:HTMLElement):Promise<void>{
+  if(!IS_TAURI_RUNTIME){host.innerHTML='<section class="preview-notice"><h2>Datos del juego disponibles en la aplicación</h2><p>Por privacidad, el navegador no puede analizar carpetas. Abre la aplicación instalada para seleccionar voluntariamente una carpeta local de Mini World.</p></section>';return;}
+  host.innerHTML=`<section class="game-data-view"><header><div><h2>Centro de datos del juego</h2><p>Catálogo local de API, eventos e IDs para Mini World ID Studio 2.</p></div><button data-scan-game>${gameDataScan?'Analizar otra carpeta':'Seleccionar carpeta'}</button></header><div data-game-results>${gameDataScan?'':'<div class="game-data-empty"><strong>Ninguna carpeta analizada</strong><p>Studio solo leerá archivos de texto compatibles después de que tú elijas una carpeta. Nunca ejecuta ni copia scripts, DLL o recursos.</p></div>'}</div></section>`;
+  const results=host.querySelector<HTMLElement>('[data-game-results]')!;
+  const paint=(queryValue=''):void=>{
+    if(!gameDataScan)return;
+    const filtered=filterGameData(gameDataScan,queryValue),compatibility=catalogCompatibility(gameDataScan,METHODS.map(method=>method.key),EVENTS.map(event=>event.id));
+    const rows=(items:Array<{name:string;occurrences:number;sources:string[]}>,known:Set<string>)=>items.slice(0,300).map(item=>`<div class="game-data-row"><button data-copy-observed="${html(item.name)}" title="Copiar nombre técnico"><code>${html(item.name)}</code></button><em>${known.has(item.name)?'conocido':'por revisar'} · ${item.occurrences}</em><small title="${html(item.sources.join(', '))}">${html(item.sources[0]||'ruta relativa no disponible')}</small></div>`).join('');
+    const idRows=filtered.ids.slice(0,300).map(item=>`<div class="game-data-row"><button data-copy-observed="${html(item.id)}" title="Copiar ID"><code>${html(item.id)}</code></button><em>${html(item.kind)} · heurístico</em><small title="${html(item.source)}">${html(item.label||item.source)}</small></div>`).join('');
+    results.innerHTML=`<p class="game-data-privacy">${html(gameDataScan.privacy)}</p><div class="game-data-summary"><article><strong>${gameDataScan.filesRead}</strong><span>Archivos leídos</span></article><article><strong>${(gameDataScan.bytesRead/1048576).toFixed(1)} MB</strong><span>Límite 64 MB</span></article><article><strong>${compatibility.knownMethods}</strong><span>API conocidas</span></article><article><strong>${compatibility.unknownMethods}</strong><span>API por revisar</span></article><article><strong>${compatibility.knownEvents}</strong><span>Eventos conocidos</span></article><article><strong>${compatibility.unknownEvents}</strong><span>Eventos por revisar</span></article></div><ul class="game-data-warnings">${gameDataScan.warnings.map(warning=>`<li>${html(warning)}</li>`).join('')}</ul><div class="game-data-tools"><input data-game-filter value="${html(queryValue)}" placeholder="Buscar API, evento, ID o archivo…"><button data-copy-game-report>Copiar informe seguro</button></div><div class="game-data-columns"><section class="game-data-panel"><header><h3>API observadas</h3><span>${filtered.methods.length}</span></header><div class="game-data-list">${rows(filtered.methods,new Set(METHODS.map(method=>method.key)))||'<p>No hay coincidencias.</p>'}</div></section><section class="game-data-panel"><header><h3>Eventos observados</h3><span>${filtered.events.length}</span></header><div class="game-data-list">${rows(filtered.events,new Set(EVENTS.map(event=>event.id)))||'<p>No hay coincidencias.</p>'}</div></section><section class="game-data-panel"><header><h3>IDs observados</h3><span>${filtered.ids.length}</span></header><div class="game-data-list">${idRows||'<p>No hay coincidencias.</p>'}</div></section></div><aside class="game-data-legal"><strong>Separación limpia</strong><p>Estos resultados son observaciones locales, no documentación oficial. Nada se añade automáticamente al generador: una API nueva debe contrastarse antes de definir parámetros o generar Lua.</p><span class="game-data-source">Fuente seleccionada: ${html(gameDataScan.displayRoot)}${gameDataScan.detectedVersion?` · versión detectada ${html(gameDataScan.detectedVersion)}`:''}</span></aside>`;
+    const filter=results.querySelector<HTMLInputElement>('[data-game-filter]')!;filter.focus();filter.setSelectionRange(filter.value.length,filter.value.length);filter.oninput=()=>paint(filter.value);
+    results.querySelector<HTMLButtonElement>('[data-copy-game-report]')!.onclick=async()=>{await navigator.clipboard.writeText(safeCatalogReport(gameDataScan!));status('Informe local copiado sin código ni recursos')};
+    results.querySelectorAll<HTMLButtonElement>('[data-copy-observed]').forEach(button=>button.onclick=async()=>{await navigator.clipboard.writeText(String(button.dataset.copyObserved));status('Valor técnico copiado')});
+    applyTranslations(results,studioPreferences.locale);
+  };
+  paint();
+  host.querySelector<HTMLButtonElement>('[data-scan-game]')!.onclick=async event=>{const button=event.currentTarget as HTMLButtonElement;button.disabled=true;button.textContent='Analizando…';try{const scan=await chooseAndScanGameData();if(!scan)return;gameDataScan=scan;paint();status(`${scan.methods.length} API y ${scan.events.length} eventos observados`)}catch(error){results.innerHTML=`<p class="local-map-warning">${html(error instanceof Error?error.message:String(error))}</p>`}finally{button.disabled=false;button.textContent='Analizar otra carpeta'}};
+}
+
 function renderConfig(host: HTMLElement): void {
   host.innerHTML = `<div class="config-grid"><section><h2>Proyecto</h2><label>Título<input data-project-title value="${html(project.title)}"></label><label>Descripción<textarea data-project-description>${html(project.description)}</textarea></label><label>Lua global previo a los activadores<textarea data-preamble spellcheck="false">${html(project.preamble)}</textarea></label></section><section><h2>Comportamiento</h2><label>Nivel del editor<select data-editor-mode-setting><option value="basic" ${project.settings.editorMode==='basic'?'selected':''}>Básico · solo opciones necesarias</option><option value="intermediate" ${project.settings.editorMode==='intermediate'?'selected':''}>Intermedio · permite elegir API</option><option value="advanced" ${project.settings.editorMode==='advanced'?'selected':''}>Avanzado · Lua, resultados y argumentos</option></select></label><label class="check"><input data-setting="keepTabOnAdd" type="checkbox" ${project.settings.keepTabOnAdd ? 'checked' : ''}> Mantener la pestaña al añadir un activador</label><label class="check"><input data-setting="showCodeOnMap" type="checkbox" ${project.settings.showCodeOnMap ? 'checked' : ''}> Mostrar código en el mapa</label><label class="check"><input data-setting="freeMapMovement" type="checkbox" ${project.settings.freeMapMovement ? 'checked' : ''}> Permitir mover el mapa</label><label class="check"><input data-setting="moveTriggers" type="checkbox" ${project.settings.moveTriggers ? 'checked' : ''}> Permitir mover activadores</label><label class="check"><input data-setting="easyMode" type="checkbox" ${project.settings.easyMode ? 'checked' : ''}> Reemplazar llamadas por nombres fáciles</label><label class="check"><input data-setting="grid" type="checkbox" ${project.settings.grid ? 'checked' : ''}> Mostrar cuadrícula</label><button data-reset-map>Restablecer posición del mapa</button></section><section><h2>Seguridad</h2><p>Máximo 2.5 MB. El Studio no ejecuta Lua. Los bloques no reconocidos se mantienen visibles como Lua libre.</p><button data-run-scan>Analizar proyecto</button><pre data-config-result></pre></section></div>`;
   const bind = (selector: string, apply: (value: string) => void) => { const input = host.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector); if (input) input.onchange = () => { const before = snap(); apply(input.value); commit(before); }; };
@@ -379,7 +401,7 @@ function render(): void {
   renderProjects(); renderTriggers(); renderInspector();
   app.querySelectorAll<HTMLButtonElement>('[data-view-tab]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.viewTab === project.activeView)));
   const host = query<HTMLElement>('[data-workspace]');
-  if (project.activeView === 'map') renderMap(host); else if (project.activeView === 'editor') renderEditor(host); else if (project.activeView === 'lua') renderLua(host); else if(project.activeView==='diagnostics')renderDiagnostics(host);else if(project.activeView==='localmaps')void renderLocalMaps(host);else renderConfig(host);
+  if (project.activeView === 'map') renderMap(host); else if (project.activeView === 'editor') renderEditor(host); else if (project.activeView === 'lua') renderLua(host); else if(project.activeView==='diagnostics')renderDiagnostics(host);else if(project.activeView==='localmaps')void renderLocalMaps(host);else if(project.activeView==='gamedata')void renderGameData(host);else renderConfig(host);
   const errors = validateProject(project); if (errors.length) status(`${errors.length} error(es)`);
   applyTranslations(app,studioPreferences.locale);
 }

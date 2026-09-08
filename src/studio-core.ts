@@ -12,7 +12,7 @@ export type StudioTrigger = { id: string; name: string; event: string; functionN
 export type EditorMode='basic'|'intermediate'|'advanced';
 export type StudioSettings = { keepTabOnAdd: boolean; showCodeOnMap: boolean; freeMapMovement: boolean; moveTriggers: boolean; easyMode: boolean; grid: boolean; zoom: number; mapX: number; mapY: number; editorMode:EditorMode };
 export type LocalMapLink={mapId:string;dataVersion:string;uiReferences:Array<{uiId:string;elementId?:string}>};
-export type StudioView = 'map' | 'editor' | 'lua' | 'diagnostics' | 'config' | 'localmaps';
+export type StudioView = 'map' | 'editor' | 'lua' | 'diagnostics' | 'config' | 'localmaps' | 'gamedata';
 export type StudioProject = { format: 'miniworld-id-studio'; version: 2; layoutVersion: number; id: number; title: string; description: string; preamble: string; createdAt: string; updatedAt: string; activeView: StudioView; settings: StudioSettings; triggers: StudioTrigger[]; localMap?:LocalMapLink };
 export type SecurityResult = { status: 'safe' | 'warning' | 'blocked'; blocked: string[]; warnings: string[]; calls: string[]; executed: false };
 export type ProjectIssue = { id: string; severity: 'error' | 'warning' | 'info'; code: string; message: string; triggerId?: string; actionId?: string };
@@ -115,7 +115,7 @@ export function parseProject(text: string): StudioProject {
     });
   }
   const editorMode=['basic','intermediate','advanced'].includes(String(input.settings?.editorMode))?input.settings?.editorMode as EditorMode:'basic';
-  return { ...base, ...input, version: 2, layoutVersion: PROJECT_LAYOUT_VERSION, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'diagnostics', 'config', 'localmaps'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}),editorMode }, triggers };
+  return { ...base, ...input, version: 2, layoutVersion: PROJECT_LAYOUT_VERSION, preamble: String(input.preamble || ''), activeView: ['map', 'editor', 'lua', 'diagnostics', 'config', 'localmaps', 'gamedata'].includes(String(input.activeView)) ? input.activeView as StudioProject['activeView'] : 'map', settings: { ...settings(), ...(input.settings || {}),editorMode }, triggers };
 }
 
 export function importLua(source: string, projectId: number): StudioProject {

@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2.0.0 — 2026-09-08
+
+- Añade el Centro de datos del juego, local, voluntario y de solo lectura.
+- Detecta nombres de API, eventos e IDs de archivos de texto sin almacenar cuerpos Lua ni rutas absolutas.
+- Compara símbolos observados con el catálogo revisado del Studio y marca los desconocidos para revisión.
+- Aplica límites de profundidad, archivos y bytes; ignora enlaces simbólicos y formatos binarios.
+- Mantiene una separación limpia: ningún recurso o código descompilado se incluye en la aplicación MIT.
+
 ## 1.1.0-beta.4 — 2026-08-19
 
 - Corrige el selector y valor inicial de jugador cuando el evento entrega campos con el prefijo `e.`.

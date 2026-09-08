@@ -24,6 +24,7 @@ import {methodDefaultValueForContext,parameterPreset,valueSourceOptions} from '.
 import {simulateTrigger} from '../src/simulator.ts';
 import {translateText} from '../src/i18n.ts';
 import {createWorkspaceBackup,mergeWorkspaceProjects,parseWorkspaceBackup} from '../src/workspace-backup.ts';
+import {catalogCompatibility,filterGameData,safeCatalogReport} from '../src/game-data.ts';
 import {actionAtPath,appendActionInside,findActionPath,insertActionAfter,moveActionBefore,moveActionByOffset,moveActionToRootEnd,removeActionAtPath} from '../src/action-tree.ts';
 
 const project = createProject(1);
@@ -136,5 +137,11 @@ const backup=createWorkspaceBackup([project],{favoriteMethods:['Chat:sendChat'],
 if(parsedBackup.projects.length!==1||parsedBackup.preferences.locale!=='en'||parsedBackup.preferences.inspectorVisible!==false)throw new Error('El respaldo no conservó proyectos o preferencias.');
 const backupMerge=mergeWorkspaceProjects([project],parsedBackup.projects);if(backupMerge.projects.length!==2||backupMerge.imported[0].id===project.id||backupMerge.projects[1].id!==project.id)throw new Error('Restaurar un respaldo reemplazó o colisionó con un proyecto actual.');
 let invalidBackupAccepted=false;try{parseWorkspaceBackup('{"format":"incorrecto","version":1,"projects":[]}');invalidBackupAccepted=true}catch{}if(invalidBackupAccepted)throw new Error('Se aceptó un respaldo con formato inválido.');
+
+const observedCatalog={displayRoot:'data410',detectedVersion:'410',filesSeen:4,filesRead:3,filesSkipped:1,bytesRead:2048,methods:[{name:'World:spawnItem',occurrences:2,sources:['scripts/a.lua'],confidence:'observed'},{name:'Unknown:probe',occurrences:1,sources:['scripts/b.lua'],confidence:'observed'}],events:[{name:'Game.Start',occurrences:1,sources:['scripts/a.lua'],confidence:'observed'},{name:'New.Event',occurrences:1,sources:['scripts/b.lua'],confidence:'observed'}],ids:[{id:'1001',label:'Objeto',kind:'item',source:'itemdef.csv',confidence:'heuristic'}],warnings:[],privacy:'local'};
+const observedCompatibility=catalogCompatibility(observedCatalog,METHODS.map(method=>method.key),EVENTS.map(event=>event.id));
+if(JSON.stringify(observedCompatibility)!==JSON.stringify({knownMethods:1,unknownMethods:1,knownEvents:1,unknownEvents:1}))throw new Error('La matriz de compatibilidad local contó símbolos incorrectamente.');
+if(filterGameData(observedCatalog,'1001').ids.length!==1||filterGameData(observedCatalog,'1001').methods.length!==0||filterGameData(observedCatalog,'scripts/b').events.length!==1)throw new Error('La búsqueda del catálogo observado no filtra IDs o rutas relativas.');
+const safeReport=safeCatalogReport(observedCatalog);if(safeReport.includes('displayRoot')||!safeReport.includes('miniworld-id-studio-observed-catalog'))throw new Error('El informe seguro expuso la carpeta seleccionada o perdió su formato.');
 
 console.log('Core MIT local: OK');
