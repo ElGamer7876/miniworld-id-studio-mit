@@ -1,4 +1,4 @@
-# Mini World ID Studio 1.1.0 Beta — MIT Local
+# Mini World Script Engine 2.0.1 — MIT Local
 
 [English documentation](README.en.md) · **Documentación en español**
 
@@ -10,7 +10,18 @@ Editor Tauri 2 completamente local para construir activadores y exportar Lua.
 Esta edición está preparada para publicarse como repositorio independiente en
 GitHub bajo la licencia MIT.
 
-Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `1.1.0-beta.2` completa la localización funcional del ciclo bilingüe y no reemplaza una versión estable. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
+Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest). La versión `2.0.0` incorpora un centro local de datos del juego con límites estrictos y separación limpia respecto a recursos de terceros. Consulta [CHANGELOG.md](CHANGELOG.md) para conocer los cambios.
+
+## Nuevo en 2.0.0
+
+- Analiza voluntariamente una carpeta local elegida por el usuario.
+- Observa nombres de API, eventos e IDs sin conservar cuerpos de código.
+- Compara lo observado con el catálogo integrado y separa lo conocido de lo pendiente de revisión.
+- Limita cada análisis a 25.000 archivos, 4 MB por archivo y 64 MB leídos; omite enlaces simbólicos y binarios.
+- Genera un informe seguro con rutas relativas, conteos, procedencia y confianza, nunca con la ruta absoluta.
+- El analizador de datos no lee DLL, ejecutables, paquetes, mapas, audios, imágenes, modelos ni credenciales. La biblioteca visual separada puede abrir voluntariamente una carpeta PNG o un ZIP local para mostrar vistas previas.
+
+La biblioteca visual indexa nombres e IDs sin extraer el archivo completo. Las imágenes y el código decompilado de terceros no se incluyen ni quedan cubiertos por la licencia MIT de este repositorio. El catálogo de errores es una referencia diagnóstica; los símbolos internos del motor no se presentan como API Lua verificada.
 
 La interfaz incluye un selector persistente **Español / English**. El Studio traduce navegación, editor, catálogo API, eventos, diagnósticos, mapas locales y configuración, pero conserva sin cambios el código Lua, los nombres técnicos de API y el contenido escrito por el usuario.
 
@@ -83,6 +94,14 @@ activador. El resumen copiable no contiene el código Lua.
 El catálogo de API permite marcar métodos favoritos y mantiene una lista de
 llamadas recientes. Estas preferencias son locales, no forman parte del
 proyecto y no generan conexiones de red.
+
+## Novedades de 1.1.0 Beta 3
+
+- Respaldo local de todos los proyectos, preferencias y plantillas en un solo archivo validado de hasta 16 MB.
+- Restauración no destructiva: remapea IDs en conflicto y nunca sustituye proyectos actuales.
+- Autoguardado serializado con estados Guardando/Guardado, error persistente y botón de reintento.
+- Guía accesible de atajos mediante el botón Atajos, `Ctrl+/` o la paleta de comandos.
+- Los atajos globales se ignoran mientras el usuario escribe en campos de texto.
 
 ## Novedades de 1.0.0 Beta 2
 

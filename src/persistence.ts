@@ -2,6 +2,7 @@ import type { StudioProject, StudioTrigger } from './studio-core';
 import { createProject, parseProject } from './studio-core';
 import { normalizePanelLayout } from './panel-layout';
 import { createPlatformStore, openText, safeFileName, saveText } from './platform-storage';
+import { createWorkspaceBackup, parseWorkspaceBackup, type WorkspaceBackup } from './workspace-backup';
 
 const storePromise = createPlatformStore('studio-projects.json');
 const recoveryStorePromise = createPlatformStore('studio-recovery.json');
@@ -55,6 +56,24 @@ export async function exportProject(project: StudioProject): Promise<boolean> {
 
 export async function importProject(): Promise<StudioProject | null> {
   const raw=await openText('Abrir proyecto de Mini World ID Studio',['mwstudio','json']);return raw===null?null:parseProject(raw);
+}
+
+export async function exportWorkspaceBackup(projects:StudioProject[],preferences:StudioPreferences):Promise<boolean>{
+  const backup=createWorkspaceBackup(projects,preferences,await listTriggerTemplates());
+  const date=new Date().toISOString().slice(0,10);
+  return saveText('Respaldar espacio de trabajo',`mini-world-id-studio-${date}.mwstudio-backup`,['mwstudio-backup','json'],JSON.stringify(backup,null,2),'application/json');
+}
+
+export async function importWorkspaceBackup():Promise<WorkspaceBackup|null>{
+  const raw=await openText('Restaurar espacio de trabajo',['mwstudio-backup','json']);
+  return raw===null?null:parseWorkspaceBackup(raw);
+}
+
+export async function mergeWorkspaceTemplates(incoming:WorkspaceBackup['templates']):Promise<number>{
+  const store=await triggerTemplateStorePromise,existing=await listTriggerTemplates(),names=new Set(existing.map(item=>item.name.toLocaleLowerCase())),ids=new Set(existing.map(item=>item.id)),addedIds=new Set<string>();
+  for(const source of incoming){const key=source.name.toLocaleLowerCase();if(names.has(key))continue;let id=source.id,index=1;while(ids.has(id)){id=`${source.id}_${index++}`}existing.push({...source,id});names.add(key);ids.add(id);addedIds.add(id)}
+  while(existing.length>50||new Blob([JSON.stringify(existing)]).size>4*1024*1024)existing.pop();
+  await store.set('templates',existing);await store.save();return existing.filter(item=>addedIds.has(item.id)).length;
 }
 
 export async function exportLua(project: StudioProject, lua: string): Promise<boolean> {

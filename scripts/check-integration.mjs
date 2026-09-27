@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { deflateRawSync } from 'node:zlib';
+import { ENGINE_ERROR_CODES, engineErrorsByCode, searchEngineErrors } from '../src/error-catalog.ts';
+import { filterTextureAssets, scanTextureZip } from '../src/texture-pack.ts';
+import { translateText } from '../src/i18n.ts';
+
+assert.equal(ENGINE_ERROR_CODES.length, 472);
+assert.equal(engineErrorsByCode(1000)[0]?.symbol, 'TIMEOUT');
+assert.match(engineErrorsByCode(1000)[0]?.descriptionEn || '', /timed out/);
+assert.ok(searchEngineErrors('authentication').some(item => item.categoryEn === 'Account and authentication'));
+assert.equal(translateText('Recursos UI', 'en'), 'UI assets');
+assert.equal(translateText('12 PNG · 3 omitidos', 'en'), '12 PNG · 3 skipped');
+
+const name = Buffer.from('textures/UI/10001.png');
+const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
+const compressed = deflateRawSync(png);
+const local = Buffer.alloc(30);
+local.writeUInt32LE(0x04034b50, 0);
+local.writeUInt16LE(8, 8);
+local.writeUInt32LE(compressed.length, 18);
+local.writeUInt32LE(png.length, 22);
+local.writeUInt16LE(name.length, 26);
+const central = Buffer.alloc(46);
+central.writeUInt32LE(0x02014b50, 0);
+central.writeUInt16LE(8, 10);
+central.writeUInt32LE(compressed.length, 20);
+central.writeUInt32LE(png.length, 24);
+central.writeUInt16LE(name.length, 28);
+const offset = local.length + name.length + compressed.length;
+const end = Buffer.alloc(22);
+end.writeUInt32LE(0x06054b50, 0);
+end.writeUInt16LE(1, 8);
+end.writeUInt16LE(1, 10);
+end.writeUInt32LE(central.length + name.length, 12);
+end.writeUInt32LE(offset, 16);
+const archive = new File([local, name, compressed, central, name, end], 'test.zip');
+const pack = await scanTextureZip(archive);
+assert.equal(pack.assets.length, 1);
+assert.equal(pack.assets[0].id, '10001');
+assert.equal(pack.assets[0].category, 'Interfaz');
+assert.equal(filterTextureAssets(pack, '10001', 'Interfaz').length, 1);
+assert.deepEqual(Buffer.from(await pack.assets[0].load().then(blob => blob.arrayBuffer())), png);
+
+const config = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
+for (const policy of [config.app.security.csp, config.app.security.devCsp]) assert.match(policy, /img-src [^;]*blob:/);
+console.log('Catálogo de errores y ZIP visual: OK');

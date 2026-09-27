@@ -1,5 +1,35 @@
 # Historial de cambios
 
+## 2.0.1 — 2026-09-27
+
+- Cambia el nombre visible a Mini World Script Engine sin alterar los identificadores ni el formato de proyectos existentes.
+- Añade una referencia bilingüe de 472 códigos de error para diagnóstico; no los confunde con la API Lua pública.
+- Permite explorar voluntariamente imágenes PNG de una carpeta o ZIP local, buscar sus IDs y verlas sin extraer ni incluir recursos de terceros en el paquete.
+- Corrige el filtrado de categorías en inglés y permite las vistas previas locales `blob:` mediante la política de seguridad de Tauri.
+- Amplía las pruebas automáticas de integración, traducción y lectura limitada de ZIP.
+
+## 2.0.0 — 2026-09-08
+
+- Mantiene visibles las referencias de jugador en Básico e Intermedio aunque el evento activo no las proporcione, señalándolas claramente en lugar de reducir el selector a `nil`.
+- Añade el Centro de datos del juego, local, voluntario y de solo lectura.
+- Detecta nombres de API, eventos e IDs de archivos de texto sin almacenar cuerpos Lua ni rutas absolutas.
+- Compara símbolos observados con el catálogo revisado del Studio y marca los desconocidos para revisión.
+- Aplica límites de profundidad, archivos y bytes; ignora enlaces simbólicos y formatos binarios.
+- Mantiene una separación limpia: ningún recurso o código descompilado se incluye en la aplicación MIT.
+
+## 1.1.0-beta.4 — 2026-08-19
+
+- Corrige el selector y valor inicial de jugador cuando el evento entrega campos con el prefijo `e.`.
+- Evita que un jugador válido se degrade a `nil` al crear o editar una acción API.
+
+## 1.1.0-beta.3 — 2026-08-16
+
+- Añade respaldo completo y validado de proyectos, preferencias y plantillas locales.
+- Restaura como copias sin sobrescribir proyectos ni colisionar IDs.
+- Serializa el autoguardado y muestra Guardando, Guardado o un error persistente con reintento.
+- Añade una guía bilingüe y accesible de atajos mediante botón, `Ctrl+/` y paleta de comandos.
+- Evita ejecutar atajos globales mientras se escribe en entradas, selectores o áreas de texto.
+
 ## 1.1.0-beta.2 — 2026-08-16
 
 - Completa la localización funcional Español / English en todas las vistas principales.

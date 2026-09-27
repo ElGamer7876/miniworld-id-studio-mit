@@ -1,4 +1,4 @@
-# Mini World ID Studio 1.1.0 Beta — MIT Local
+# Mini World Script Engine 2.0.1 — MIT Local
 
 **English documentation** · [Documentación en español](README.md)
 
@@ -6,9 +6,29 @@
 [![Checks](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml/badge.svg)](https://github.com/ElGamer7876/miniworld-id-studio-mit/actions/workflows/check.yml)
 [![Release](https://img.shields.io/github/v/release/ElGamer7876/miniworld-id-studio-mit)](https://github.com/ElGamer7876/miniworld-id-studio-mit/releases/latest)
 
-Mini World ID Studio is a Tauri 2 desktop editor for building Mini World triggers and exporting Lua locally. This repository contains the offline MIT edition; it does not require a Mini World ID account and does not send projects or map data over the network.
+Mini World Script Engine is a Tauri 2 desktop editor for building Mini World triggers and exporting Lua locally. This repository contains the offline MIT edition; it does not require a Mini World ID account and does not send projects or map data over the network.
 
 The interface provides a persistent **Español / English** selector. Navigation, the editor, API catalog, events, diagnostics, local maps, and settings are localized while Lua code, API identifiers, project content, IDs, and user-entered values remain unchanged. Version `1.1.0-beta.2` completes this functional bilingual pass.
+Version `2.0.0` adds a clean-room local game-data center. It observes API/event names and CSV IDs from a user-selected folder without retaining script bodies, binary assets, or absolute paths.
+
+## New in 2.0.0
+
+- Manually scan a local folder selected by the user.
+- Observe API names, events, and CSV IDs without retaining code bodies.
+- Compare observations with Studio's reviewed catalog and keep unknown symbols pending review.
+- Enforce limits of 25,000 files, 4 MB per file, and 64 MB read; skip symlinks and binaries.
+- Produce a metadata-only report with relative sources and no selected absolute path.
+- The game-data scanner never reads DLLs, executables, packages, maps, audio, images, models, or credentials. The separate visual library can open a user-selected PNG folder or ZIP and previews images locally.
+
+The visual library indexes image names and IDs from a local archive without extracting it. Images and third-party decompiled source are not bundled or covered by this repository's MIT license. The error reference is diagnostic only: internal engine symbols must not be treated as verified Lua APIs.
+
+## New in 1.1.0 Beta 3
+
+- Back up all local projects, preferences, and trigger templates in one validated file up to 16 MB.
+- Non-destructive restore remaps conflicting project IDs and never replaces current work.
+- Serialized autosave exposes Saving/Saved states, keeps failures visible, and offers an explicit retry button.
+- Open the bilingual shortcut guide from the toolbar, `Ctrl+/`, or the command palette.
+- Global shortcuts are ignored while the user is typing in a form field.
 
 ## Editor levels
 
