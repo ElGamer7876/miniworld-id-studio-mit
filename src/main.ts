@@ -18,7 +18,9 @@ import './variable-refactor.css';
 import './editor-mode.css';
 import './simulator.css';
 import './nested-editor.css';
+import './error-catalog.css';
 import { EVENTS, METHODS, eventById, methodByKey, methodDefaultTargets, splitLuaArguments } from './catalog';
+import { ENGINE_ERROR_CODES, searchEngineErrors } from './error-catalog';
 import { EDITION_LABEL, HAS_NETWORK, checkRemote, openHomepage } from './edition';
 import { analyzeProjectMetrics, cloneAction, cloneTrigger, createAction, createCondition, createProject, createTrigger, createVariable, generateLua, importLua, inspectProject, organizeMethodKeys, renameVariableReferences, scanLua, searchProject, validateProject, type ActionType, type StudioAction, type StudioProject, type StudioTrigger } from './studio-core';
 import { clearRecoveryPoints, createRecoveryPoint, exportLua, exportProject, exportWorkspaceBackup, importProject, importWorkspaceBackup, listProjects, listRecoveryPoints, listTriggerTemplates, loadStudioPreferences, mergeWorkspaceTemplates, persistProjects, persistStudioPreferences, removeTriggerTemplate, saveTriggerTemplate, type StudioPreferences } from './persistence';
@@ -32,6 +34,7 @@ import { methodDefaultValueForContext, parameterPreset, valueSourceOptions } fro
 import { simulateTrigger } from './simulator';
 import { actionAtPath, appendActionInside, findActionPath, insertActionAfter, moveActionBefore, moveActionByOffset, moveActionToRootEnd, removeActionAtPath } from './action-tree';
 import { applyTranslations, translateText } from './i18n';
+import { chooseTextureFolder, chooseTextureZip, filterTextureAssets, type TexturePack } from './texture-pack';
 
 const appElement = document.querySelector<HTMLDivElement>('#app');
 if (!appElement) throw new Error('No se encontró #app');
@@ -43,11 +46,12 @@ let history: string[] = [], future: string[] = [], saveTimer = 0, draggedAction 
 let saveQueue:Promise<boolean>=Promise.resolve(true);
 let localMapScan:LocalMapScan|null=null;
 let gameDataScan:GameDataScan|null=null;
+let texturePack:TexturePack|null=null;
 let studioPreferences:StudioPreferences={favoriteMethods:[],recentMethods:[],projectPanelVisible:true,inspectorVisible:true,locale:'es'};
 
 app.innerHTML = `
   <header class="app-bar">
-    <strong>Mini World ID Studio</strong>${IS_TAURI_RUNTIME?'':'<strong class="preview-badge">Preview web local</strong>'}<button class="edition" data-home>${EDITION_LABEL}</button>
+    <strong>Mini World Script Engine</strong>${IS_TAURI_RUNTIME?'':'<strong class="preview-badge">Preview web local</strong>'}<button class="edition" data-home>${EDITION_LABEL}</button>
     <span class="separator"></span><button data-new>Nuevo</button><button data-import-project>Abrir</button><button data-save-file>Guardar</button><button data-export-lua>Exportar Lua</button>
     <span class="separator"></span><button data-undo>Deshacer</button><button data-redo>Rehacer</button><button data-search title="Buscar en el proyecto (Ctrl+K)">Buscar</button><button data-commands title="Paleta de comandos (Ctrl+Shift+P)">Comandos</button>${HAS_NETWORK ? '<button data-api>Comprobar API</button>' : ''}<span class="separator"></span><button class="panel-toggle" data-toggle-project-panel title="Mostrar u ocultar Proyectos (Ctrl+B)">Proyectos</button><button class="panel-toggle" data-toggle-inspector title="Mostrar u ocultar Inspector (Ctrl+Alt+I)">Inspector</button><span data-status data-save-state="idle">Local</span><button class="retry-save" data-retry-save hidden>Reintentar guardado</button>
   </header>
@@ -60,10 +64,12 @@ app.innerHTML = `
   <dialog data-lua-dialog><form method="dialog"><header><strong>Convertir Lua a activadores</strong><button value="cancel" aria-label="Cerrar">×</button></header><p>El código reconocido se convierte en bloques. Las instrucciones desconocidas se conservan como Lua libre.</p><textarea data-lua-source spellcheck="false"></textarea><footer><button value="cancel">Cancelar</button><button value="default" data-convert-lua>Convertir</button></footer></form></dialog>
   <dialog class="search-dialog" data-search-dialog><div><header><strong>Buscar en el proyecto</strong><button type="button" data-close-search aria-label="Cerrar">×</button></header><input data-project-search placeholder="Activador, evento, variable, API…" autocomplete="off"><div data-search-results class="search-results"></div><footer><small>Ctrl+K para abrir · Enter para elegir el primer resultado</small></footer></div></dialog>
   <dialog class="command-dialog" data-command-dialog><div><header><strong>Paleta de comandos</strong><button type="button" data-close-commands aria-label="Cerrar">×</button></header><input data-command-search placeholder="Escribe una acción o vista…" autocomplete="off"><div data-command-results class="command-results"></div><footer><small>Ctrl+Shift+P o F1 · ↑ ↓ para navegar · Enter para ejecutar</small></footer></div></dialog>
-  <dialog class="trigger-template-dialog" data-trigger-template-dialog><div><header><strong>Plantillas locales de activadores</strong><button type="button" data-close-trigger-templates aria-label="Cerrar">×</button></header><div data-trigger-template-list></div></div></dialog>`;
+  <dialog class="trigger-template-dialog" data-trigger-template-dialog><div><header><strong>Plantillas locales de activadores</strong><button type="button" data-close-trigger-templates aria-label="Cerrar">×</button></header><div data-trigger-template-list></div></div></dialog>
+  <dialog class="texture-library-dialog" data-texture-dialog><div><header><div><strong>Biblioteca visual para UI</strong><small>Paquete local; las imágenes no se suben</small></div><button type="button" data-close-textures aria-label="Cerrar">×</button></header><div data-texture-library></div></div></dialog>`;
 
 const query = <T extends Element>(selector: string): T => { const node = app.querySelector<T>(selector); if (!node) throw new Error(`Falta ${selector}`); return node; };
 const shortcutButton=document.createElement('button');shortcutButton.dataset.shortcuts='';shortcutButton.title='Atajos de teclado (Ctrl+/)';shortcutButton.textContent='Atajos';query<HTMLButtonElement>('[data-commands]').after(shortcutButton);
+const textureButton=document.createElement('button');textureButton.dataset.textures='';textureButton.title='Abrir imágenes e IDs para interfaces';textureButton.textContent='Recursos UI';shortcutButton.after(textureButton);textureButton.onclick=()=>void showTextureLibrary();
 const shortcutDialog=document.createElement('dialog');shortcutDialog.className='shortcut-dialog';shortcutDialog.dataset.shortcutDialog='';shortcutDialog.setAttribute('aria-labelledby','shortcut-dialog-title');shortcutDialog.innerHTML='<div><header><strong id="shortcut-dialog-title" data-shortcut-title>Atajos de teclado</strong><button type="button" data-close-shortcuts aria-label="Cerrar">×</button></header><p data-shortcut-intro></p><div data-shortcut-list></div></div>';app.append(shortcutDialog);
 const languageLabel=document.createElement('label');languageLabel.className='language-picker';languageLabel.innerHTML='<span>Idioma</span><select data-language aria-label="Idioma / Language"><option value="es">Español</option><option value="en">English</option></select>';query<HTMLElement>('[data-status]').before(languageLabel);
 const html = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character] || character);
@@ -109,6 +115,50 @@ function showKeyboardShortcuts():void{const dialog=query<HTMLDialogElement>('[da
 function showProjectSearch():void{const dialog=query<HTMLDialogElement>('[data-search-dialog]'),input=query<HTMLInputElement>('[data-project-search]'),results=query<HTMLElement>('[data-search-results]');const paint=():void=>{const matches=searchProject(project,input.value);results.innerHTML=input.value.trim()?matches.length?matches.map((match,index)=>`<button data-search-result="${index}"><span>${html(match.kind)}</span><strong>${html(match.title)}</strong><small>${html(match.detail)}</small></button>`).join(''):'<p>No se encontraron resultados.</p>':'<p>Escribe para buscar en todo el proyecto.</p>';results.querySelectorAll<HTMLButtonElement>('[data-search-result]').forEach(button=>button.onclick=()=>{const match=matches[Number(button.dataset.searchResult)];if(!match)return;activeTriggerId=match.triggerId;dialog.close();project.activeView='editor';render();void saveAll();status(`${match.kind} abierto desde la búsqueda`)})};input.value='';paint();if(!dialog.open)dialog.showModal();window.setTimeout(()=>input.focus(),0);input.oninput=paint;input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();results.querySelector<HTMLButtonElement>('[data-search-result]')?.click()}};query<HTMLButtonElement>('[data-close-search]').onclick=()=>dialog.close()}
 
 async function showTriggerTemplates():Promise<void>{const dialog=query<HTMLDialogElement>('[data-trigger-template-dialog]'),list=query<HTMLElement>('[data-trigger-template-list]');if(!dialog.open)dialog.showModal();list.innerHTML='<p>Cargando plantillas…</p>';query<HTMLButtonElement>('[data-close-trigger-templates]').onclick=()=>dialog.close();try{const templates=await listTriggerTemplates();list.innerHTML=templates.length?`<div class="trigger-template-list">${templates.map(template=>`<article><div><strong>${html(template.name)}</strong><small>${html(eventById(template.trigger.event)?.name||template.trigger.event)} · ${template.trigger.actions.length} acción(es)</small></div><button data-use-trigger-template="${html(template.id)}">Añadir</button><button class="danger-button" data-remove-trigger-template="${html(template.id)}">Eliminar</button></article>`).join('')}</div>`:'<p class="empty-panel">Guarda un activador desde el Inspector para reutilizarlo aquí.</p>';list.querySelectorAll<HTMLButtonElement>('[data-use-trigger-template]').forEach(button=>button.onclick=()=>{const template=templates.find(item=>item.id===button.dataset.useTriggerTemplate);if(!template)return;const before=snap(),copy=cloneTrigger(template.trigger,project.triggers.length+1);copy.name=template.name;project.triggers.push(copy);activeTriggerId=copy.id;dialog.close();project.activeView='editor';commit(before,'Activador añadido desde plantilla')});list.querySelectorAll<HTMLButtonElement>('[data-remove-trigger-template]').forEach(button=>button.onclick=async()=>{const template=templates.find(item=>item.id===button.dataset.removeTriggerTemplate);if(!template||!confirm(`¿Eliminar la plantilla local “${template.name}”?`))return;await removeTriggerTemplate(template.id);status('Plantilla local eliminada');await showTriggerTemplates()})}catch(error){list.innerHTML=`<p>${html(error instanceof Error?error.message:'No se pudieron abrir las plantillas locales.')}</p>`}}
+
+async function showTextureLibrary():Promise<void>{
+  const dialog=query<HTMLDialogElement>('[data-texture-dialog]'),host=query<HTMLElement>('[data-texture-library]');let urls:string[]=[],generation=0;const release=():void=>{urls.forEach(url=>URL.revokeObjectURL(url));urls=[]};
+  const pick = async (source: 'zip' | 'folder'): Promise<void> => {
+    const selected = source === 'zip' ? await chooseTextureZip() : await chooseTextureFolder();
+    if (selected) { texturePack = selected; paint(); status(studioPreferences.locale==='en'?`${selected.assets.length} visual assets indexed locally`:`${selected.assets.length} recursos visuales indexados localmente`); }
+  };
+  const paint = (filter = '', category = 'Todas'): void => {
+    generation++; release(); const current = generation;
+    if (!texturePack) {
+      host.innerHTML = '<div class="texture-empty"><h3>Abre un paquete visual local</h3><p>Se indexan PNG por ID y categoría. Los archivos no se copian al proyecto ni salen del equipo.</p><button data-pick-zip>Abrir ZIP</button> <button data-pick-folder>Seleccionar carpeta extraída</button></div>';
+      applyTranslations(host,studioPreferences.locale);
+      host.querySelector<HTMLButtonElement>('[data-pick-zip]')!.onclick = () => void pick('zip');
+      host.querySelector<HTMLButtonElement>('[data-pick-folder]')!.onclick = () => void pick('folder');
+      return;
+    }
+    const categories = ['Todas', ...new Set(texturePack.assets.map(asset => asset.category))];
+    const items = filterTextureAssets(texturePack, filter, category);
+    host.innerHTML = `<div class="texture-tools"><div><strong>${html(texturePack.sourceName)}</strong><small>${texturePack.assets.length} PNG · ${texturePack.skipped} omitidos</small></div><input data-texture-filter value="${html(filter)}" placeholder="Buscar ID o categoría…"><select data-texture-category>${categories.map(item => `<option value="${html(item)}" ${item === category ? 'selected' : ''}>${html(item)}</option>`).join('')}</select><button data-change-zip>Cambiar ZIP</button><button data-change-folder>Cambiar carpeta</button></div><div class="texture-grid">${items.map((asset, index) => `<button data-texture-index="${index}" title="${html(asset.relativePath)}"><img data-preview-index="${index}" alt=""><strong>${html(asset.id)}</strong><span>${html(asset.category)}</span></button>`).join('') || '<p>No hay coincidencias.</p>'}</div><p class="texture-note">Pulsa una imagen para copiar su ID. Se muestran hasta 80 resultados; filtra para ver más.</p>`;
+    applyTranslations(host,studioPreferences.locale);
+    const input = host.querySelector<HTMLInputElement>('[data-texture-filter]')!, select = host.querySelector<HTMLSelectElement>('[data-texture-category]')!;
+    input.oninput = () => { const cursor = input.selectionStart; paint(input.value, select.value); const replacement = host.querySelector<HTMLInputElement>('[data-texture-filter]')!; replacement.focus(); replacement.setSelectionRange(cursor, cursor); };
+    select.onchange = () => paint(input.value, select.value);
+    host.querySelector<HTMLButtonElement>('[data-change-zip]')!.onclick = () => void pick('zip');
+    host.querySelector<HTMLButtonElement>('[data-change-folder]')!.onclick = () => void pick('folder');
+    host.querySelectorAll<HTMLButtonElement>('[data-texture-index]').forEach(button => button.onclick = async () => {
+      const asset = items[Number(button.dataset.textureIndex)]; if (!asset) return;
+      await navigator.clipboard.writeText(asset.id); status(studioPreferences.locale==='en'?`Asset ID ${asset.id} copied`:`ID de recurso ${asset.id} copiado`);
+    });
+    void (async () => {
+      for (let index = 0; index < items.length; index++) {
+        if (current !== generation || !dialog.open) return;
+        try {
+          const blob = await items[index].load();
+          if (current !== generation || !dialog.open) return;
+          const url = URL.createObjectURL(blob); urls.push(url);
+          const preview = host.querySelector<HTMLImageElement>(`[data-preview-index="${index}"]`);
+          if (preview) preview.src = url;
+        } catch { const preview = host.querySelector<HTMLImageElement>(`[data-preview-index="${index}"]`); if (preview) preview.alt = studioPreferences.locale==='en'?'Preview unavailable':'Vista previa no disponible'; }
+      }
+    })();
+  };
+  dialog.onclose=()=>{generation++;release()};query<HTMLButtonElement>('[data-close-textures]').onclick=()=>dialog.close();if(!dialog.open)dialog.showModal();paint();
+}
 
 function saveAll(): Promise<boolean> {
   setSaveState('saving','Guardando…');
@@ -321,6 +371,33 @@ function renderDiagnostics(host: HTMLElement): void {
   host.querySelectorAll<HTMLButtonElement>('[data-open-issue]').forEach(button=>button.onclick=()=>{activeTriggerId=String(button.dataset.openIssue);project.activeView='editor';render();void saveAll();status('Activador del problema abierto')});
   host.querySelector<HTMLButtonElement>('[data-fix-overlaps]')?.addEventListener('click',()=>{const before=snap(),occupied=new Set<string>();project.triggers.forEach((trigger,index)=>{let key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;if(occupied.has(key)){const fallback=createTrigger(index+1);trigger.x=fallback.x;trigger.y=fallback.y;key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`;while(occupied.has(key)){trigger.x+=40;trigger.y+=40;key=`${Math.round(trigger.x)}:${Math.round(trigger.y)}`}}occupied.add(key)});commit(before,'Activadores superpuestos separados')});
   host.querySelector<HTMLButtonElement>('[data-fix-api-values]')?.addEventListener('click',()=>{const before=snap();const repair=(actions:StudioAction[]):void=>actions.forEach(action=>{if(action.type==='api'){const method=methodByKey(action.method||'');if(method){const args=splitLuaArguments(action.value),required=method.params.filter(param=>!param.optional).length;while(args.length<required)args.push(method.params[args.length].defaultValue);action.value=args.join(', ')}}if(action.children?.length)repair(action.children)});project.triggers.forEach(trigger=>repair(trigger.actions));commit(before,'Valores API faltantes completados')});
+  appendEngineErrorCatalog(host);
+}
+
+function appendEngineErrorCatalog(host:HTMLElement):void{
+  const english=studioPreferences.locale==='en';
+  const section=document.createElement('section');
+  section.className='engine-error-catalog';
+  section.innerHTML=english
+    ? `<header><div><h3>Engine error dictionary</h3><p>${ENGINE_ERROR_CODES.length} observed codes. Reference for interpreting logs; it does not run or change the project.</p></div><span class="observed-badge">Observed source</span></header><label>Search by number, symbol, or category<input data-engine-error-search inputmode="search" placeholder="E.g. 1000, TIMEOUT, map, authentication"></label><div data-engine-error-results></div><small>Descriptions are diagnostic hints and may vary by game version.</small>`
+    : `<header><div><h3>Diccionario de errores del motor</h3><p>${ENGINE_ERROR_CODES.length} códigos observados. Sirve para interpretar registros; no ejecuta ni modifica el proyecto.</p></div><span class="observed-badge">Fuente observada</span></header><label>Buscar por número, símbolo o categoría<input data-engine-error-search inputmode="search" placeholder="Ej. 1000, TIMEOUT, mapa, autenticación"></label><div data-engine-error-results></div><small>Las descripciones facilitan el diagnóstico y pueden variar entre versiones del juego.</small>`;
+  host.querySelector('.diagnostics-view')?.append(section);
+  const input=section.querySelector<HTMLInputElement>('[data-engine-error-search]')!;
+  const results=section.querySelector<HTMLElement>('[data-engine-error-results]')!;
+  const paint=():void=>{
+    const items=searchEngineErrors(input.value,40);
+    results.innerHTML=items.length
+      ?items.map((item,index)=>`<article><code>${item.code}</code><div><strong>${html(item.symbol)}</strong><span>${html(english?item.categoryEn:item.category)}</span><p>${html(english?item.descriptionEn:item.description)}</p></div><button data-copy-error-index="${index}">${english?'Copy':'Copiar'}</button></article>`).join('')
+      :`<p class="empty-panel">${english?'No matching code found.':'No se encontró ese código.'}</p>`;
+    results.querySelectorAll<HTMLButtonElement>('[data-copy-error-index]').forEach(button=>button.onclick=async()=>{
+      const item=items[Number(button.dataset.copyErrorIndex)];
+      if(!item)return;
+      await navigator.clipboard.writeText(`${item.code} · ${item.symbol} · ${english?item.descriptionEn:item.description}`);
+      status(english?'Error description copied':'Descripción del error copiada');
+    });
+  };
+  input.oninput=paint;
+  paint();
 }
 
 async function renderLocalMaps(host:HTMLElement):Promise<void>{

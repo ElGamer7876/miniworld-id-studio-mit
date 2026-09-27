@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 2.0.1 — 2026-09-27
+
+- Cambia el nombre visible a Mini World Script Engine sin alterar los identificadores ni el formato de proyectos existentes.
+- Añade una referencia bilingüe de 472 códigos de error para diagnóstico; no los confunde con la API Lua pública.
+- Permite explorar voluntariamente imágenes PNG de una carpeta o ZIP local, buscar sus IDs y verlas sin extraer ni incluir recursos de terceros en el paquete.
+- Corrige el filtrado de categorías en inglés y permite las vistas previas locales `blob:` mediante la política de seguridad de Tauri.
+- Amplía las pruebas automáticas de integración, traducción y lectura limitada de ZIP.
+
 ## 2.0.0 — 2026-09-08
 
 - Mantiene visibles las referencias de jugador en Básico e Intermedio aunque el evento activo no las proporcione, señalándolas claramente en lugar de reducir el selector a `nil`.

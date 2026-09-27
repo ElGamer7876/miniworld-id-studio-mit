@@ -1,4 +1,4 @@
-# Mini World ID Studio 2.0.0 — MIT Local
+# Mini World Script Engine 2.0.1 — MIT Local
 
 [English documentation](README.en.md) · **Documentación en español**
 
@@ -19,7 +19,9 @@ Descarga Stable desde [GitHub Releases](https://github.com/ElGamer7876/miniworld
 - Compara lo observado con el catálogo integrado y separa lo conocido de lo pendiente de revisión.
 - Limita cada análisis a 25.000 archivos, 4 MB por archivo y 64 MB leídos; omite enlaces simbólicos y binarios.
 - Genera un informe seguro con rutas relativas, conteos, procedencia y confianza, nunca con la ruta absoluta.
-- No incluye ni lee DLL, ejecutables, paquetes, mapas, audios, imágenes, modelos o credenciales.
+- El analizador de datos no lee DLL, ejecutables, paquetes, mapas, audios, imágenes, modelos ni credenciales. La biblioteca visual separada puede abrir voluntariamente una carpeta PNG o un ZIP local para mostrar vistas previas.
+
+La biblioteca visual indexa nombres e IDs sin extraer el archivo completo. Las imágenes y el código decompilado de terceros no se incluyen ni quedan cubiertos por la licencia MIT de este repositorio. El catálogo de errores es una referencia diagnóstica; los símbolos internos del motor no se presentan como API Lua verificada.
 
 La interfaz incluye un selector persistente **Español / English**. El Studio traduce navegación, editor, catálogo API, eventos, diagnósticos, mapas locales y configuración, pero conserva sin cambios el código Lua, los nombres técnicos de API y el contenido escrito por el usuario.
 
